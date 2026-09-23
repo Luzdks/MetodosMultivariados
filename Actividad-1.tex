@@ -1,0 +1,821 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+% fallback for those not using the hyperref driver hyperxmp:
+\makeatletter
+\@ifundefined{xmpquote}{\newcommand{\xmpquote}[1]{#1}}{}
+\makeatother
+\hypersetup{
+  pdftitle={Actividad 1.1 Normalidad univariada},
+  pdfauthor={Lucero Díaz},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Actividad 1.1 Normalidad univariada}
+\author{Lucero Díaz}
+\date{2026-09-22}
+
+\begin{document}
+\maketitle
+
+\subsection{Sesgo y curtosis en la Normalidad y fuera de
+ella}\label{sesgo-y-curtosis-en-la-normalidad-y-fuera-de-ella}
+
+\subsubsection{1. En la normalidad}\label{en-la-normalidad}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# A. Dibuja el gráfico de la distribución normal con media cero y desviación estándar 100}
+
+\NormalTok{Pob\_normal }\OtherTok{=} \FunctionTok{dnorm}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{400}\SpecialCharTok{:}\DecValTok{400}\NormalTok{, }\DecValTok{0}\NormalTok{, }\DecValTok{100}\NormalTok{)}
+\FunctionTok{plot}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{400}\SpecialCharTok{:}\DecValTok{400}\NormalTok{, Pob\_normal, }\AttributeTok{type=}\StringTok{"l"}\NormalTok{, }\AttributeTok{main =} \StringTok{"Distribución Normal media=0, sigma=100"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-1-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# B. Genera 150 datos aleatorios provenientes de una distribución normal con media cero y desviación estándar 100 y dibuja el histograma de los datos generados.}
+\NormalTok{x1}\OtherTok{=}\FunctionTok{rnorm}\NormalTok{(}\DecValTok{100}\NormalTok{,}\DecValTok{0}\NormalTok{,}\DecValTok{100}\NormalTok{)}
+\FunctionTok{hist}\NormalTok{(x1, }\AttributeTok{col=}\DecValTok{0}\NormalTok{, }\AttributeTok{main =} \StringTok{"Distribución empírica de Normal media=0, sigma=100"}\NormalTok{, }\AttributeTok{freq=}\ConstantTok{FALSE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-2-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# C. Calcula el sesgo y la curtosis de los datos generados:}
+\FunctionTok{library}\NormalTok{ (moments)}
+\NormalTok{sg1 }\OtherTok{=} \FunctionTok{skewness}\NormalTok{(x1)}
+\NormalTok{k1 }\OtherTok{=} \FunctionTok{kurtosis}\NormalTok{(x1)}
+
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Sesgo:"}\NormalTok{, sg1, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Sesgo: 0.3385956
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Curtosis:"}\NormalTok{, k1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Curtosis: 2.730511
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# D. Analiza la normalidad de los datos generados:}
+\FunctionTok{jarque.test}\NormalTok{(x1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Jarque-Bera Normality Test
+## 
+## data:  x1
+## JB = 2.2134, p-value = 0.3307
+## alternative hypothesis: greater
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{qqnorm}\NormalTok{(x1, }\AttributeTok{main =} \StringTok{"QQ{-}Plot de datos Normales"}\NormalTok{)}
+\FunctionTok{qqline}\NormalTok{(x1, }\AttributeTok{col =} \StringTok{"red"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-4-1.pdf}}
+
+\begin{itemize}
+\tightlist
+\item
+  Compara el gráfico de la distribución teórica (punto A) con el gráfico
+  de la distribución empírica (punto B), ¿en qué son iguales y en qué
+  son diferentes?
+\end{itemize}
+
+Ambas gráficas se muestran centradas en 0, así como también un rango de
+variabilidad similar. En donde mayormente difieren sería en la
+variabilidad de cada barra, lo que termina afectando en la distribución
+empírica.
+
+\begin{itemize}
+\tightlist
+\item
+  Relaciona la distribución empírica (punto B) con los valores de sesgo
+  y curtosis (punto C) y el QQPlot y la prueba de normalidad (punto D)
+\end{itemize}
+
+Para analizar la distribución empírica mostrada, veremos cada punto paso
+a paso (C y D). En el caso del punto C, se nos muestran tanto el sesgo
+como la curtosis muy cercanos a 0, lo que indica simetría y una
+distribución mesocúrtica; mientras que en el punto D, la QQ-Plot nos
+muestra como la mayoría de los datos si siguen la línea teórica, a pesar
+de que ambas colas tengan algunos datos fuera de la línea. Finalmente,
+la prueba de normalidad Jarque-Bera nos arroja un p-value mayor a 0.05,
+lo que confirma la hipótesis nula y con esto tenemos evidencia de que la
+distribución empírica si puede considerarse una distribución normal.
+
+\subsubsection{2. Fuera de la normalidad}\label{fuera-de-la-normalidad}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Configuración del panel para mostrar 3 gráficos}
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{3}\NormalTok{))}
+
+\CommentTok{\# Crear el vector del dominio x (de 0 a 10 con incrementos finos para una curva suave)}
+\NormalTok{x11 }\OtherTok{=} \FunctionTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{10}\NormalTok{, }\AttributeTok{by =} \FloatTok{0.01}\NormalTok{)}
+
+\CommentTok{\# Evaluar la densidad dgamma (o dexp)}
+\NormalTok{Pob\_muy\_derecha }\OtherTok{=} \FunctionTok{dgamma}\NormalTok{(x11, }\AttributeTok{shape =} \DecValTok{1}\NormalTok{, }\AttributeTok{rate =} \DecValTok{1}\NormalTok{)}
+
+\CommentTok{\# Graficar la línea}
+\FunctionTok{plot}\NormalTok{(x11, Pob\_muy\_derecha, }\AttributeTok{type =} \StringTok{"l"}\NormalTok{, }
+     \AttributeTok{main =} \StringTok{"Distribución Muy Sesgada a la Derecha (Gamma shape=1, rate=1)"}\NormalTok{,}
+     \AttributeTok{xlab =} \StringTok{"x"}\NormalTok{, }\AttributeTok{ylab =} \StringTok{"Densidad"}\NormalTok{)}
+
+\CommentTok{\# Definir el dominio x}
+\NormalTok{x12 }\OtherTok{=} \FunctionTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{5}\NormalTok{, }\AttributeTok{by =} \FloatTok{0.01}\NormalTok{)}
+
+\CommentTok{\# Evaluar la densidad dweibull}
+\NormalTok{Pob\_lig\_derecha }\OtherTok{=} \FunctionTok{dweibull}\NormalTok{(x12, }\AttributeTok{shape =} \DecValTok{2}\NormalTok{, }\AttributeTok{scale =} \DecValTok{1}\NormalTok{)}
+
+\CommentTok{\# Graficar la línea}
+\FunctionTok{plot}\NormalTok{(x12, Pob\_lig\_derecha, }\AttributeTok{type =} \StringTok{"l"}\NormalTok{, }
+     \AttributeTok{main =} \StringTok{"Distribución Ligeramente Sesgada a la Derecha (Weibull shape=2, scale=1)"}\NormalTok{,}
+     \AttributeTok{xlab =} \StringTok{"x"}\NormalTok{, }\AttributeTok{ylab =} \StringTok{"Densidad"}\NormalTok{)}
+
+\CommentTok{\# Definir el dominio x}
+\NormalTok{x13 }\OtherTok{=} \FunctionTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{, }\FloatTok{1.5}\NormalTok{, }\AttributeTok{by =} \FloatTok{0.01}\NormalTok{)}
+
+\CommentTok{\# Evaluar la densidad dweibull}
+\NormalTok{Pob\_izquierda }\OtherTok{=} \FunctionTok{dweibull}\NormalTok{(x13, }\AttributeTok{shape =} \DecValTok{10}\NormalTok{, }\AttributeTok{scale =} \DecValTok{1}\NormalTok{)}
+
+\CommentTok{\# Graficar la línea}
+\FunctionTok{plot}\NormalTok{(x13, Pob\_izquierda, }\AttributeTok{type =} \StringTok{"l"}\NormalTok{, }
+     \AttributeTok{main =} \StringTok{"Distribución Sesgada a la Izquierda (Weibull shape=10, scale=1)"}\NormalTok{,}
+     \AttributeTok{xlab =} \StringTok{"x"}\NormalTok{, }\AttributeTok{ylab =} \StringTok{"Densidad"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-5-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Restaurar panel gráfico}
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{1}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Configuración del panel para mostrar 3 gráficos}
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{3}\NormalTok{))}
+
+\CommentTok{\# Set de datos de ejemplo (n muestras)}
+\NormalTok{n }\OtherTok{=} \DecValTok{10000}
+
+\CommentTok{\# 1. Muy sesgada a la derecha: Exponencial (o Gamma alpha=1)}
+\NormalTok{x21 }\OtherTok{=} \FunctionTok{rexp}\NormalTok{(n, }\AttributeTok{rate =} \DecValTok{1}\NormalTok{) }\CommentTok{\# equivalente a rgamma(n, shape = 1, rate = 1)}
+\FunctionTok{hist}\NormalTok{(x21, }\AttributeTok{main =} \StringTok{"Muy sesgada a la derecha}\SpecialCharTok{\textbackslash{}n}\StringTok{(Exponencial lambda=1)"}\NormalTok{, }
+     \AttributeTok{col =} \StringTok{"lightblue"}\NormalTok{, }\AttributeTok{xlab =} \StringTok{"x"}\NormalTok{, }\AttributeTok{freq =} \ConstantTok{FALSE}\NormalTok{)}
+
+\CommentTok{\# 2. Ligeramente sesgada a la derecha: Weibull (shape=2)}
+\NormalTok{x22 }\OtherTok{=} \FunctionTok{rweibull}\NormalTok{(n, }\AttributeTok{shape =} \DecValTok{2}\NormalTok{, }\AttributeTok{scale =} \DecValTok{1}\NormalTok{)}
+\FunctionTok{hist}\NormalTok{(x22, }\AttributeTok{main =} \StringTok{"Ligeramente sesgada a la derecha}\SpecialCharTok{\textbackslash{}n}\StringTok{(Weibull shape=2)"}\NormalTok{, }
+     \AttributeTok{col =} \StringTok{"lightgreen"}\NormalTok{, }\AttributeTok{xlab =} \StringTok{"x"}\NormalTok{, }\AttributeTok{freq =} \ConstantTok{FALSE}\NormalTok{)}
+
+\CommentTok{\# 3. Sesgada a la izquierda: Weibull (shape=5)}
+\NormalTok{x23 }\OtherTok{=} \FunctionTok{rweibull}\NormalTok{(n, }\AttributeTok{shape =} \DecValTok{10}\NormalTok{, }\AttributeTok{scale =} \DecValTok{1}\NormalTok{)}
+\FunctionTok{hist}\NormalTok{(x23, }\AttributeTok{main =} \StringTok{"Sesgada a la izquierda}\SpecialCharTok{\textbackslash{}n}\StringTok{(Weibull shape=10)"}\NormalTok{, }
+     \AttributeTok{col =} \StringTok{"coral"}\NormalTok{, }\AttributeTok{xlab =} \StringTok{"x"}\NormalTok{, }\AttributeTok{freq =} \ConstantTok{FALSE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-6-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Restaurar panel gráfico}
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{1}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# 1. Muy sesgada a la derecha: Exponencial (o Gamma alpha=1)}
+\NormalTok{sg21 }\OtherTok{=} \FunctionTok{skewness}\NormalTok{(x21)}
+\NormalTok{k21 }\OtherTok{=} \FunctionTok{kurtosis}\NormalTok{(x21)}
+
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Sesgo:"}\NormalTok{, sg21, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Sesgo: 1.968455
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Curtosis:"}\NormalTok{, k21, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ }\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Curtosis: 8.725958 
+## 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# 2. Ligeramente sesgada a la derecha: Weibull (shape=2)}
+\NormalTok{sg22 }\OtherTok{=} \FunctionTok{skewness}\NormalTok{(x22)}
+\NormalTok{k22 }\OtherTok{=} \FunctionTok{kurtosis}\NormalTok{(x22)}
+
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Sesgo:"}\NormalTok{, sg22, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Sesgo: 0.6243515
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Curtosis:"}\NormalTok{, k22, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ }\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Curtosis: 3.165923 
+## 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# 3. Sesgada a la izquierda: Weibull (shape=5)}
+\NormalTok{sg23 }\OtherTok{=} \FunctionTok{skewness}\NormalTok{(x23)}
+\NormalTok{k23 }\OtherTok{=} \FunctionTok{kurtosis}\NormalTok{(x23)}
+
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Sesgo:"}\NormalTok{, sg23, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Sesgo: -0.6110021
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cat}\NormalTok{(}\StringTok{"Curtosis:"}\NormalTok{, k23, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{ }\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Curtosis: 3.541703 
+## 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Configuración del panel para mostrar 3 gráficos}
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{3}\NormalTok{))}
+
+\CommentTok{\#}
+\FunctionTok{jarque.test}\NormalTok{(x21)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Jarque-Bera Normality Test
+## 
+## data:  x21
+## JB = 20119, p-value < 2.2e-16
+## alternative hypothesis: greater
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{qqnorm}\NormalTok{(x21, }\AttributeTok{main =} \StringTok{"QQ{-}Plot Sesgada a la derecha"}\NormalTok{)}
+\FunctionTok{qqline}\NormalTok{(x21, }\AttributeTok{col =} \StringTok{"red"}\NormalTok{)}
+
+\FunctionTok{jarque.test}\NormalTok{(x22)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Jarque-Bera Normality Test
+## 
+## data:  x22
+## JB = 661.16, p-value < 2.2e-16
+## alternative hypothesis: greater
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{qqnorm}\NormalTok{(x22, }\AttributeTok{main =} \StringTok{"QQ{-}Plot Ligeramente Sesgada a la derecha "}\NormalTok{)}
+\FunctionTok{qqline}\NormalTok{(x22, }\AttributeTok{col =} \StringTok{"red"}\NormalTok{)}
+
+\FunctionTok{jarque.test}\NormalTok{(x23)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Jarque-Bera Normality Test
+## 
+## data:  x23
+## JB = 744.47, p-value < 2.2e-16
+## alternative hypothesis: greater
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{qqnorm}\NormalTok{(x23, }\AttributeTok{main =} \StringTok{"QQ{-}Plot Sesgada a la izquierda"}\NormalTok{)}
+\FunctionTok{qqline}\NormalTok{(x23, }\AttributeTok{col =} \StringTok{"red"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-8-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Restaurar panel gráfico}
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{1}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{itemize}
+\tightlist
+\item
+  Compara los gráficos de la distribución teórica (punto A) con los
+  gráficos de la distribución empírica (punto B), ¿en qué son iguales y
+  en qué son diferentes?
+\end{itemize}
+
+Específicamente en las 3 distribuciones, tanto la teórica como la
+empírica se ven casi idénticas: centradas en valores similares, con un
+rango de variabilidad muy parecido y valor en las barras prácticamente
+igual a lo esperado.
+
+\begin{itemize}
+\tightlist
+\item
+  Relaciona la distribución empírica (punto B) con los valores de sesgo
+  y curtosis (punto C) y el QQPlot y la prueba de normalidad (punto D)
+\end{itemize}
+
+Nos iremos por cada distribución:
+
+En el caso de la distribución muy sesgada a la derecha (exponencial),
+observamos como su sesgo y curtosis son claramente mayores a 0, lo que
+indica un sesgo prominente a la derecha así como una distribución
+leptocúrtica. Mientras que la prueba de normalidad Jarque-Bera nos
+indica que el p-value es muchísimo menor a 0.05, rechazando así la
+hipótesis nula de normalidad; estos resultados son respaldador por la
+QQ-Plot, donde la mayoría de los puntos no siguen la línea teórica y se
+nota un claro sesgo a la derecha.
+
+En la distribución ligeramente sesgada a la derecha (weibull shape=2)
+podemos también notar valores de sesgo y curtosis superiores a 0, pero
+no tan alejados como lo son los de la distribución exponencial; esto nos
+indica lo mismo, sesgo a la derecha y distribución leptocúrtica. La
+prueba de normalidad Jarque-Bera también rechaza la hipótesis nula y la
+QQ-Plot, a pesar de tener una gran cantidad de valores siguiendo la
+línea teórica, se observa diversos datos de ambas colas diferir con la
+línea, sobretodo en la cola derecha.
+
+Finalmente, tenemos la distribución sesgada a la izquierda (weibull
+shape=10). En su sesgo, a diferencia de las distribuciones anteriores,
+notamos que este es negativo, lo que nos indica efectivamente un sesgo a
+la izquierda; la curtosis se mantiene por arriba de 0, por lo que
+también es leptocúrtica. Con respecto a la prueba de normalidad, también
+se rechaza la hipótesis nula y la QQ-Plot mostrada posee datos en ambas
+colas que difieren con la línea teórica, mayormente en la cola
+izquierda.
+
+\begin{itemize}
+\tightlist
+\item
+  Emite una conclusión de cómo se relaciona la curtosis y el sesgo con
+  la distribución QQPlot y con la prueba de hipótesis de Jarque-Bera.
+\end{itemize}
+
+En conclusión, el sesgo y la curtosis representan de manera numérica la
+forma y geometría de la distribución evaluada, mientras que estos
+resultados se pueden ver de manera gráfica gracias a la QQ-Plot. En el
+caso de la prueba de hipótesis de Jarque-Bera, esta misma combina tanto
+el sesgo como la curtosis para así armar un método que nos ayude a
+evaluar la normalidad de una distribución. Funciona de manera similar a
+una prueba de hipótesis, donde en este caso la hipótesis nula es la
+normalidad y la hipótesis alternativa es lo contrario.
+
+\subsection{Probando normalidad en una base de
+datos}\label{probando-normalidad-en-una-base-de-datos}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(nortest)}
+\FunctionTok{library}\NormalTok{(e1071)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Adjuntando el paquete: 'e1071'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:moments':
+## 
+##     kurtosis, moment, skewness
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{data}\NormalTok{(cars)}
+\NormalTok{speed }\OtherTok{=}\NormalTok{ cars}\SpecialCharTok{$}\NormalTok{speed}
+\NormalTok{dist }\OtherTok{=}\NormalTok{ cars}\SpecialCharTok{$}\NormalTok{dist}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Prueba para \textquotesingle{}speed\textquotesingle{}}
+\FunctionTok{shapiro.test}\NormalTok{(speed)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Shapiro-Wilk normality test
+## 
+## data:  speed
+## W = 0.97765, p-value = 0.4576
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ad.test}\NormalTok{(speed)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Anderson-Darling normality test
+## 
+## data:  speed
+## A = 0.26143, p-value = 0.6927
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Prueba para \textquotesingle{}dist\textquotesingle{}}
+\FunctionTok{shapiro.test}\NormalTok{(dist)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Shapiro-Wilk normality test
+## 
+## data:  dist
+## W = 0.95144, p-value = 0.0391
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ad.test}\NormalTok{(dist)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Anderson-Darling normality test
+## 
+## data:  dist
+## A = 0.74067, p-value = 0.05021
+\end{verbatim}
+
+Se eligieron las pruebas de normalidad de Shapiro Wilk y Anderson
+Darling, donde ambas variables fueron sometidas a estos dos métodos.
+Ante estas pruebas de normalidad, tenemos lo siguiente:
+
+\begin{itemize}
+\tightlist
+\item
+  h0: La variable se distribuye de manera normal.
+\item
+  h1: La variable no se distribuye de manera normal.
+\end{itemize}
+
+En la variable speed, se muestran como ambos valores superan el p-value
+= 0.05, lo que nos indica que la h0 se mantiene, así que speed sigue una
+distribución normal. Por otro lado, en la variable dist ambas pruebas
+salen con un p-value menor a 0.05, lo que refuta la hipótesis nula y nos
+indica que esta variable no sigue una distribución normal.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+
+\FunctionTok{qqnorm}\NormalTok{(speed, }\AttributeTok{main =} \StringTok{"QQ{-}Plot Speed"}\NormalTok{)}
+\FunctionTok{qqline}\NormalTok{(speed, }\AttributeTok{col =} \StringTok{"red"}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+
+\FunctionTok{qqnorm}\NormalTok{(dist, }\AttributeTok{main =} \StringTok{"QQ{-}Plot Dist"}\NormalTok{)}
+\FunctionTok{qqline}\NormalTok{(dist, }\AttributeTok{col =} \StringTok{"red"}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-11-1.pdf}}
+
+En la gráfica de speed se observa que la mayor parte de los puntos
+siguen la recta teórica de normalidad. Mientras que en la variable dist,
+se observa desfase en ambas colas, especialmente en la de la derecha.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Sesgo y Curtosis para \textquotesingle{}speed\textquotesingle{}}
+\FunctionTok{skewness}\NormalTok{(speed)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -0.1105533
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kurtosis}\NormalTok{(speed)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] -0.6730924
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Sesgo y Curtosis para \textquotesingle{}dist\textquotesingle{}}
+\FunctionTok{skewness}\NormalTok{(dist)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.7591268
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kurtosis}\NormalTok{(dist)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.1193971
+\end{verbatim}
+
+En el caso de la variable speed, se tiene una simetría cercana a 0, lo
+que indica efectivamente simetría, mientras que al ser su curtosis menor
+a 0, el resultado nos indica que la distribución es platicúrtica. En la
+variable dist, se observa como el valor de sesgo está más alejado del 0,
+y al ser positivo nos indica un ligero sesgo a la derecha; mientras que
+en su curtosis parece ser leptocúrtica al ser mayor a 0.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Para \textquotesingle{}speed\textquotesingle{}}
+\NormalTok{mean\_speed }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(speed)}
+\NormalTok{median\_speed }\OtherTok{\textless{}{-}} \FunctionTok{median}\NormalTok{(speed)}
+\NormalTok{midrange\_speed }\OtherTok{\textless{}{-}}\NormalTok{ (}\FunctionTok{max}\NormalTok{(speed) }\SpecialCharTok{+} \FunctionTok{min}\NormalTok{(speed)) }\SpecialCharTok{/} \DecValTok{2}
+
+\FunctionTok{cat}\NormalTok{(}\StringTok{"SPEED {-} Media:"}\NormalTok{, mean\_speed, }\StringTok{"| Mediana:"}\NormalTok{, median\_speed, }\StringTok{"| Rango Medio:"}\NormalTok{, midrange\_speed, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## SPEED - Media: 15.4 | Mediana: 15 | Rango Medio: 14.5
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Para \textquotesingle{}dist\textquotesingle{}}
+\NormalTok{mean\_dist }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(dist)}
+\NormalTok{median\_dist }\OtherTok{\textless{}{-}} \FunctionTok{median}\NormalTok{(dist)}
+\NormalTok{midrange\_dist }\OtherTok{\textless{}{-}}\NormalTok{ (}\FunctionTok{max}\NormalTok{(dist) }\SpecialCharTok{+} \FunctionTok{min}\NormalTok{(dist)) }\SpecialCharTok{/} \DecValTok{2}
+
+\FunctionTok{cat}\NormalTok{(}\StringTok{"DIST {-} Media:"}\NormalTok{, mean\_dist, }\StringTok{"| Mediana:"}\NormalTok{, median\_dist, }\StringTok{"| Rango Medio:"}\NormalTok{, midrange\_dist, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## DIST - Media: 42.98 | Mediana: 36 | Rango Medio: 61
+\end{verbatim}
+
+La distancia entre las tres medidas en la variable speed es mínima, lo
+que nos indica simetría. En cambio, se observa una diferencia
+considerable entre las 3 medidas de dist, sobretodo en el rango medio,
+lo que nos da una idea de cómo es su verdadera distribución.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+
+\FunctionTok{boxplot}\NormalTok{(speed, }\AttributeTok{main =} \StringTok{"Boxplot Velocidad"}\NormalTok{, }\AttributeTok{ylab =} \StringTok{"mph"}\NormalTok{, }\AttributeTok{col =} \StringTok{"lightblue"}\NormalTok{)}
+\FunctionTok{boxplot}\NormalTok{(dist, }\AttributeTok{main =} \StringTok{"Boxplot Distancia"}\NormalTok{, }\AttributeTok{ylab =} \StringTok{"ft"}\NormalTok{, }\AttributeTok{col =} \StringTok{"lightgreen"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-14-1.pdf}}
+
+La boxplot de la variable sesgo parece estar distribuida de manera
+normal, al no tener datos atípicos y mostrar al rango medio y a la
+mediana muy cercanas. En cambio, en el boxplot de dist se observa
+claramente el sesgo que posee a la derecha, donde podemos observar que
+gran parte de los datos se encuentran a la izquierda pero hay ciertos
+datos atípicos que van a la derecha y afectan a la media (de hecho, en
+el boxplot se puede observar un dato atípico muy prominente).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+
+\CommentTok{\# Histograma para \textquotesingle{}speed\textquotesingle{}}
+\FunctionTok{hist}\NormalTok{(speed, }\AttributeTok{freq =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{main =} \StringTok{"Histograma Velocidad"}\NormalTok{, }\AttributeTok{xlab =} \StringTok{"Speed"}\NormalTok{, }\AttributeTok{col =} \StringTok{"lightblue"}\NormalTok{)}
+\FunctionTok{lines}\NormalTok{(}\FunctionTok{density}\NormalTok{(speed), }\AttributeTok{col =} \StringTok{"red"}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+\FunctionTok{curve}\NormalTok{(}\FunctionTok{dnorm}\NormalTok{(x, }\AttributeTok{mean =} \FunctionTok{mean}\NormalTok{(speed), }\AttributeTok{sd =} \FunctionTok{sd}\NormalTok{(speed)), }
+      \AttributeTok{from =} \FunctionTok{min}\NormalTok{(speed), }\AttributeTok{to =} \FunctionTok{max}\NormalTok{(speed), }\AttributeTok{add =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{col =} \StringTok{"blue"}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+
+\CommentTok{\# Histograma para \textquotesingle{}dist\textquotesingle{}}
+\FunctionTok{hist}\NormalTok{(dist, }\AttributeTok{freq =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{main =} \StringTok{"Histograma Distancia"}\NormalTok{, }\AttributeTok{xlab =} \StringTok{"Dist"}\NormalTok{, }\AttributeTok{col =} \StringTok{"lightgreen"}\NormalTok{)}
+\FunctionTok{lines}\NormalTok{(}\FunctionTok{density}\NormalTok{(dist), }\AttributeTok{col =} \StringTok{"red"}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+\FunctionTok{curve}\NormalTok{(}\FunctionTok{dnorm}\NormalTok{(x, }\AttributeTok{mean =} \FunctionTok{mean}\NormalTok{(dist), }\AttributeTok{sd =} \FunctionTok{sd}\NormalTok{(dist)), }
+      \AttributeTok{from =} \FunctionTok{min}\NormalTok{(dist), }\AttributeTok{to =} \FunctionTok{max}\NormalTok{(dist), }\AttributeTok{add =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{col =} \StringTok{"blue"}\NormalTok{, }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Actividad-1_files/figure-latex/unnamed-chunk-15-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{1}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+En la variable speed, se muestra como la curva de densidad empírica
+encaja en su mayoría con la curva normal teórica, a excepción de que la
+curva primero mencionada se muestra más platicúrtica. En el caso de la
+variable dist, la curva de densidad empírica muestra un claro sesgo a la
+derecha, así como también es más puntiaguda que la curva de la normal
+teórica al ser leptocúrtica.
+
+\begin{itemize}
+\tightlist
+\item
+  Emite una conclusión final sobre la normalidad de los datos en
+  términos de todas las pruebas que realizaste.
+\end{itemize}
+
+Finalmente, por todas las pruebas mostradas, concluimos que la
+distribución de la variable speed sí cumple con gran parte de las
+pruebas de normalidad, por lo que podemos afirmar la hipótesis nula.
+Mientras que la distribución de dist no cumplió de manera satisfactoria
+con ninguna de las pruebas, por lo que se rechaza la hipótesis nula de
+normalidad.
+
+\subsection{Declaratoria de uso de IA durante el desarrollo del
+trabajo}\label{declaratoria-de-uso-de-ia-durante-el-desarrollo-del-trabajo}
+
+Se utilizó IA:
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\item
+  Herramienta: Gemini
+\item
+  Uso realizado: Ayuda en el código al momento de importar la librería
+  cars, generación de las distribuciones de la segunda mitad de la
+  primera sección, y sintaxis para la realización de elementos visuales
+  como histogramas, boxplots, curvas de densidad entre otras.
+\item
+  Secciones donde se utilizó: Segunda mitad de la primera sección,
+  específicamente en los incisos A y B, y a lo largo de la última
+  sección en la importación de la librería, las gráficas QQ-Plot, las
+  boxplots y los histogramas.
+\item
+  Validación realizada por los estudiantes: Se verificó, corrió y depuró
+  todo el script de R, así como también analizaron todos los resultados
+  arrojados para validar que todo estuviera correcto y en orden.
+\item
+  Confirmo de que se revisó, verificó y que se asume la responsabilidad
+  del contenido final entregado.
+\end{enumerate}
+
+\end{document}

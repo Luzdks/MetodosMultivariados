@@ -1,0 +1,30 @@
+---
+title: "ANOVA"
+author: "Lucero Díaz"
+date: "2026-09-22"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# 1. Crear el conjunto de datos
+blancura <- c(
+  77, 81, 71, 76, 80,  # Detergente A
+  72, 58, 74, 66, 79,  # Detergente B
+  76, 85, 82, 80, 77   # Detergente C
+)
+
+detergente <- factor(rep(c("A", "B", "C"), each = 5))
+
+datos <- data.frame(detergente, blancura)
+
+# 2. Ajustar el modelo ANOVA
+modelo_anova <- aov(blancura ~ detergente, data = datos)
+
+# 3. Ver la tabla de resultados
+summary(modelo_anova)
+```
+
