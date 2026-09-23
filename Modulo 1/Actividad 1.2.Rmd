@@ -1,0 +1,331 @@
+---
+title: "Actividad 1.2 Normalidad univariada. Transformaciones para normalidad"
+author: "Lucero Díaz"
+date: "2026-09-23"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Parte 1
+
+```{r}
+library(nortest)
+library(e1071)
+
+data(cars)
+speed = cars$speed
+dist = cars$dist
+```
+
+```{r}
+# Prueba para 'speed'
+shapiro.test(speed)
+ad.test(speed)
+
+# Prueba para 'dist'
+shapiro.test(dist)
+ad.test(dist)
+```
+
+Se eligieron las pruebas de normalidad de Shapiro Wilk y Anderson Darling, donde ambas variables fueron sometidas a estos dos métodos. Ante estas pruebas de normalidad, tenemos lo siguiente:
+
+* h0: La variable se distribuye de manera normal.
+* h1: La variable no se distribuye de manera normal.
+
+En la variable speed, se muestran como ambos valores superan el p-value = 0.05, lo que nos indica que la h0 se mantiene, así que speed sigue una distribución normal. Por otro lado, en la variable dist ambas pruebas salen con un p-value menor a 0.05, lo que refuta la hipótesis nula y nos indica que esta variable no sigue una distribución normal.
+
+
+```{r}
+par(mfrow = c(1, 2))
+
+qqnorm(speed, main = "QQ-Plot Speed")
+qqline(speed, col = "red", lwd = 2)
+
+qqnorm(dist, main = "QQ-Plot Dist")
+qqline(dist, col = "red", lwd = 2)
+```
+
+En la gráfica de speed se observa que la mayor parte de los puntos siguen la recta teórica de normalidad. Mientras que en la variable dist, se observa desfase en ambas colas, especialmente en la de la derecha.
+
+
+```{r}
+# Sesgo y Curtosis para 'speed'
+skewness(speed)
+kurtosis(speed)
+
+# Sesgo y Curtosis para 'dist'
+skewness(dist)
+kurtosis(dist)
+```
+
+En el caso de la variable speed, se tiene una simetría cercana a 0, lo que indica efectivamente simetría, mientras que al ser su curtosis menor a 0, el resultado nos indica que la distribución es platicúrtica. En la variable dist, se observa como el valor de sesgo está más alejado del 0, y al ser positivo nos indica un ligero sesgo a la derecha; mientras que en su curtosis parece ser leptocúrtica al ser mayor a 0.
+
+
+```{r}
+# Para 'speed'
+mean_speed <- mean(speed)
+median_speed <- median(speed)
+midrange_speed <- (max(speed) + min(speed)) / 2
+
+cat("SPEED - Media:", mean_speed, "| Mediana:", median_speed, "| Rango Medio:", midrange_speed, "\n")
+
+# Para 'dist'
+mean_dist <- mean(dist)
+median_dist <- median(dist)
+midrange_dist <- (max(dist) + min(dist)) / 2
+
+cat("DIST - Media:", mean_dist, "| Mediana:", median_dist, "| Rango Medio:", midrange_dist, "\n")
+```
+
+La distancia entre las tres medidas en la variable speed es mínima, lo que nos indica simetría. En cambio, se observa una diferencia considerable entre las 3 medidas de dist, sobretodo en el rango medio, lo que nos da una idea de cómo es su verdadera distribución.
+
+
+```{r}
+par(mfrow = c(1, 2))
+
+boxplot(speed, main = "Boxplot Velocidad", ylab = "mph", col = "lightblue")
+boxplot(dist, main = "Boxplot Distancia", ylab = "ft", col = "lightgreen")
+```
+
+La boxplot de la variable sesgo parece estar distribuida de manera normal, al no tener datos atípicos y mostrar al rango medio y a la mediana muy cercanas. En cambio, en el boxplot de dist se observa claramente el sesgo que posee a la derecha, donde podemos observar que gran parte de los datos se encuentran a la izquierda pero hay ciertos datos atípicos que van a la derecha y afectan a la media (de hecho, en el boxplot se puede observar un dato atípico muy prominente).
+
+
+```{r}
+par(mfrow = c(1, 2))
+
+# Histograma para 'speed'
+hist(speed, freq = FALSE, main = "Histograma Velocidad", xlab = "Speed", col = "lightblue")
+lines(density(speed), col = "red", lwd = 2)
+curve(dnorm(x, mean = mean(speed), sd = sd(speed)), 
+      from = min(speed), to = max(speed), add = TRUE, col = "blue", lwd = 2)
+
+# Histograma para 'dist'
+hist(dist, freq = FALSE, main = "Histograma Distancia", xlab = "Dist", col = "lightgreen")
+lines(density(dist), col = "red", lwd = 2)
+curve(dnorm(x, mean = mean(dist), sd = sd(dist)), 
+      from = min(dist), to = max(dist), add = TRUE, col = "blue", lwd = 2)
+
+par(mfrow = c(1, 1))
+```
+
+En la variable speed, se muestra como la curva de densidad empírica encaja en su mayoría con la curva normal teórica, a excepción de que la curva primero mencionada se muestra más platicúrtica. En el caso de la variable dist, la curva de densidad empírica muestra un claro sesgo a la derecha, así como también es más puntiaguda que la curva de la normal teórica al ser leptocúrtica.
+
+
+* Emite una conclusión final sobre la normalidad de los datos en términos de todas las pruebas que realizaste.
+
+Finalmente, por todas las pruebas mostradas, concluimos que la distribución de la variable speed sí cumple con gran parte de las pruebas de normalidad, por lo que podemos afirmar la hipótesis nula. Mientras que la distribución de dist no cumplió de manera satisfactoria con ninguna de las pruebas, por lo que se rechaza la hipótesis nula de normalidad.
+
+
+
+
+## Parte 2
+
+```{r}
+library(MASS)
+
+data(cars)
+X = cars$speed
+Y = cars$dist
+```
+
+```{r}
+# 1. Función para obtener lambdas sin conflicto de variables
+obtener_lambdas_boxcox <- function(fml, datos, grid_comun = c(-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2), paso = 0.001) {
+  rango_busqueda <- seq(min(grid_comun), max(grid_comun), by = paso)
+  
+  # boxcox acepta la fórmula y los datos directamente
+  bc <- boxcox(fml, data = datos, lambda = rango_busqueda, plotit = FALSE)
+  
+  lambda_exacta <- bc$x[which.max(bc$y)]
+  distancias <- abs(grid_comun - lambda_exacta)
+  lambda_aprox <- grid_comun[which.min(distancias)]
+  
+  return(list(
+    exacta = as.numeric(lambda_exacta),
+    aproximada = as.numeric(lambda_aprox)
+  ))
+}
+
+# 2. Función para transformar la variable Y
+transformar_bc <- function(y, lambda) {
+  if (abs(lambda) < 1e-5) {
+    return(log(y))
+  } else {
+    return((y^lambda - 1) / lambda)
+  }
+}
+```
+
+```{r}
+# Funciona para el dataset 'cars' o cualquier otro dataframe
+resultados <- obtener_lambdas_boxcox(dist ~ speed, datos = cars)
+
+lambda_exacta = resultados$exacta
+lambda_aprox = resultados$aproximada
+
+cat("Lambda Exacta:    ", lambda_exacta, "\n")
+cat("Lambda Aproximada:", lambda_aprox, "\n")
+
+# Aplicar las transformaciones dinámicamente
+Y_exacta = transformar_bc(cars$dist, resultados$exacta)
+Y_aprox  = transformar_bc(cars$dist, resultados$aproximada)
+```
+
+```{r}
+# 3. Función para extraer estadísticas descriptivas
+medidas <- function(vec, nombre) {
+  data.frame(
+    Variable = nombre,
+    Min = min(vec),
+    Q1 = quantile(vec, 0.25),
+    Mediana = median(vec),
+    Media = mean(vec),
+    Q3 = quantile(vec, 0.75),
+    Max = max(vec),
+    Sesgo = skewness(vec),
+    Curtosis = kurtosis(vec)
+  )
+}
+
+tabla_comparativa <- rbind(
+  medidas(Y, "Original (Y)"),
+  medidas(Y_exacta, "Box-Cox Exacta"),
+  medidas(Y_aprox, "Box-Cox Aprox")
+)
+print(tabla_comparativa)
+```
+
+```{r}
+# 4. Histrogramas
+par(mfrow = c(1, 3))
+hist(Y, main = "Original", xlab = "Distancia", col = "lightblue")
+hist(Y_exacta, main = paste("Exacta (λ =", round(lambda_exacta, 2), ")"), xlab = "Y_exacta", col = "lightgreen")
+hist(Y_aprox, main = "Aproximada (λ = 0.5)", xlab = "Y_aprox", col = "lightpink")
+par(mfrow = c(1, 1))
+```
+
+```{r}
+# 5. Pruebas de Normalidad
+shapiro.test(Y)
+shapiro.test(Y_exacta)
+shapiro.test(Y_aprox)
+```
+
+```{r}
+library(moments)
+
+jarque.test(Y)
+jarque.test(Y_exacta)
+jarque.test(Y_aprox)
+```
+
+```{r}
+lillie.test(Y)
+lillie.test(Y_exacta)
+lillie.test(Y_aprox)
+```
+
+```{r}
+# Definición de la transformación Yeo-Johnson para Y >= 0
+yj_trans <- function(y, lambda) {
+  if (lambda != 0) {
+    return(((y + 1)^lambda - 1) / lambda)
+  } else {
+    return(log(y + 1))
+  }
+}
+
+# Función objetivo: p-valor de Shapiro-Wilk (negativo para minimizar)
+obj_func <- function(lambda, datos) {
+  trans <- sapply(datos, yj_trans, lambda = lambda)
+  -shapiro.test(trans)$p.value
+}
+
+# Búsqueda del lambda que maximiza el p-valor
+opt <- optim(par = 1, fn = obj_func, datos = Y, method = "Brent", lower = -2, upper = 2)
+
+lambda_yj <- opt$par
+max_p_value <- -opt$value
+
+cat("Lambda Yeo-Johnson óptimo:", lambda_yj, "\n")
+cat("P-valor máximo alcanzado:", max_p_value, "\n")
+
+# Variable transformada
+Y_yj <- sapply(Y, yj_trans, lambda = lambda_yj)
+```
+
+```{r}
+# 1. Crear variable transformada
+cars$dist_sqrt <- sqrt(cars$dist)
+
+# 2. Ajustar el modelo lineal transformado
+mod_sqrt <- lm(dist_sqrt ~ speed, data = cars)
+
+# 3. Gráfica del modelo transformado
+plot(cars$speed, cars$dist_sqrt,
+     main = expression(paste("Regresión: ", sqrt(Distancia), " vs Velocidad")),
+     xlab = "Velocidad (speed)",
+     ylab = expression(sqrt("Distancia (dist)")),
+     pch = 19, col = "royalblue")
+abline(mod_sqrt, col = "firebrick", lwd = 2)
+grid()
+```
+
+```{r}
+# Código en R para pruebas de validez
+library(lmtest)
+
+# Residuos
+residuos <- residuals(mod_sqrt)
+
+# Pruebas estadísticas
+shapiro.test(residuos)           # Normalidad (p = 0.3143)
+bptest(mod_sqrt)                 # Homocedasticidad (p = 0.9157)
+dwtest(mod_sqrt)                 # Independencia (DW = 1.9417)
+
+# Distancia de Cook
+cooks <- cooks.distance(mod_sqrt)
+plot(cooks, type = "h", main = "Distancia de Cook", ylab = "Distancia")
+abline(h = 1, col = "red", lty = 2)
+```
+
+```{r}
+# 1. Gráfico de dispersión original
+plot(cars$speed, cars$dist,
+     main = "Modelo No Lineal Ajustado: Distancia vs Velocidad",
+     xlab = "Velocidad (speed)",
+     ylab = "Distancia (dist)",
+     pch = 19, col = "darkgray")
+
+# 2. Generar secuencia continua de velocidad para trazar la curva
+speed_seq <- seq(min(cars$speed), max(cars$speed), length.out = 200)
+
+# 3. Predicción no lineal: (b0 + b1 * speed)^2
+dist_pred <- (coef(mod_sqrt)[1] + coef(mod_sqrt)[2] * speed_seq)^2
+
+# 4. Superponer la curva sobre los datos
+lines(speed_seq, dist_pred, col = "darkgreen", lwd = 2.5)
+grid()
+legend("topleft", legend = expression(hat(Y) == (1.2771 + 0.3224 * X)^2),
+       col = "darkgreen", lwd = 2.5, bty = "n")
+```
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código al momento de importar la librería cars, generación de las distribuciones de la segunda mitad de la primera sección, y sintaxis para la realización de elementos visuales como histogramas, boxplots, curvas de densidad entre otras.
+
+(3) Secciones donde se utilizó: Segunda mitad de la primera sección, específicamente en los incisos A y B, y a lo largo de la última sección en la importación de la librería, las gráficas QQ-Plot, las boxplots y los histogramas.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+
