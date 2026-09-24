@@ -123,6 +123,8 @@ Finalmente, por todas las pruebas mostradas, concluimos que la distribución de 
 
 ## Parte 2
 
+La transformación de Box-Cox es un método estadístico que convierte datos no normales en datos con una distribución normal o simétrica. Esta herramienta es perfecta para lo que queremos lograr: garantizar normalidad tanto en la variable de velocidad como en la de distancia. Para facilidad de esta sección y el modelo lineal que se quiere armar, vamos a denotar la variable de velocidad (antes speed) como X, y la variable de distancia (antes dist) como Y.
+
 ```{r}
 library(MASS)
 
@@ -131,8 +133,21 @@ X = cars$speed
 Y = cars$dist
 ```
 
+La transformación de Box-Cox que buscamos para una variable $Y>0$ se define como:
+
+$$Y^{(\lambda)} = \begin{cases} \frac{Y^\lambda - 1}{\lambda} & \text{si } \lambda \neq 0 \\ \ln(Y) & \text{si } \lambda = 0 \end{cases}$$
+
+Pero para utilizarla, ocupamos antes obtener los posibles valores de lambda (exacta y aproximada).
+
+* $\lambda$ exacta: Se obtiene maximizando la función de log-verosimilitud del modelo lineal $Y \sim X$ (Y ~ X).
+
+* $\lambda$ aproximada: Se selecciona el valor redondeado más cercano de la rejilla estándar de Box-Cox. El conjunto interconectable de transformaciones usuales consiste en $\{-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2\}$
+
+Para ello programamos la función **obtener_lambdas_boxcox**, la cual nos devuelve la lambda exacta y aproximada con cálculos basados en lo explicado arriba.
+
+
 ```{r}
-# 1. Función para obtener lambdas sin conflicto de variables
+# 1. Función para obtener lambdas
 obtener_lambdas_boxcox <- function(fml, datos, grid_comun = c(-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2), paso = 0.001) {
   rango_busqueda <- seq(min(grid_comun), max(grid_comun), by = paso)
   
@@ -159,6 +174,9 @@ transformar_bc <- function(y, lambda) {
 }
 ```
 
+También computamos la función **transformar_bc**, que se encarga de calcular las transformaciones de cada lambda siguiendo la fórmula antes vista.
+
+
 ```{r}
 # Funciona para el dataset 'cars' o cualquier otro dataframe
 resultados <- obtener_lambdas_boxcox(dist ~ speed, datos = cars)
@@ -173,6 +191,14 @@ cat("Lambda Aproximada:", lambda_aprox, "\n")
 Y_exacta = transformar_bc(cars$dist, resultados$exacta)
 Y_aprox  = transformar_bc(cars$dist, resultados$aproximada)
 ```
+
+Al obtener como $\lambda_{exacta} = 0.431$ y $\lambda_{aproximada} = 0.5$, las ecuaciones para obtener las transformaciones de Box-Cox consistirían en:
+
+$$Y^{\lambda_{exacta}} = \frac{Y^{0.431} - 1}{0.431} $$
+
+$$Y^{\lambda_{aproximada}} = \frac{\sqrt{Y} - 1}{0.5} $$
+
+Ahora procederemos a realizar un análisis de normalidad de las distribuciones de los modelos que obtuvimos a través de estas transformaciones, comparándolas también con la variable Y original (distancia).
 
 ```{r}
 # 3. Función para extraer estadísticas descriptivas
@@ -198,6 +224,9 @@ tabla_comparativa <- rbind(
 print(tabla_comparativa)
 ```
 
+Podemos observar como en los datos originales la media, mediana y rango medio se encuentran considerablemente lejanos entre si, así como también la distribución está sesgada a la derecha y el leptocúrtica. Por otro lado, las nuevas distribuciones obtenidas tienen una media, mediana y rango medio con poca diferencia entre sí, y su sesgo se encuentra muy cercano a 0, lo que nos indica que las distribuciones son simétricas. Sin embargo, ambas curtosis siguen siendo altas, por lo que inferimos que también son leptocúrticas.
+
+
 ```{r}
 # 4. Histrogramas
 par(mfrow = c(1, 3))
@@ -206,6 +235,9 @@ hist(Y_exacta, main = paste("Exacta (λ =", round(lambda_exacta, 2), ")"), xlab 
 hist(Y_aprox, main = "Aproximada (λ = 0.5)", xlab = "Y_aprox", col = "lightpink")
 par(mfrow = c(1, 1))
 ```
+
+Los histogramas demuestran lo mencionado anteriormente en las métricas. Podemos observar que las 3 distribuciones no son perfectas, con algo de variabilidad en las barras.
+
 
 ```{r}
 # 5. Pruebas de Normalidad
@@ -217,9 +249,9 @@ shapiro.test(Y_aprox)
 ```{r}
 library(moments)
 
-jarque.test(Y)
-jarque.test(Y_exacta)
-jarque.test(Y_aprox)
+ad.test(Y)
+ad.test(Y_exacta)
+ad.test(Y_aprox)
 ```
 
 ```{r}
@@ -227,6 +259,18 @@ lillie.test(Y)
 lillie.test(Y_exacta)
 lillie.test(Y_aprox)
 ```
+
+En las 3 pruebas de normalidad las nuevas distribuciones superan la significancia de 0.05, lo que nos rectifica la hipótesis nula de normalidad. En el caso de los datos originales, en la mayoría de las pruebas de normalidad se rechaza la hipótesis nula, con excepción en la de Anderson-Darling (aunque solo se supera la significancia por 0.00021).
+
+Como las distribuciones de las transformaciones pasaron todas las pruebas de normalidad, no es necesario corregir algo.
+
+
+La transformación de Yeo-Johnson tiene el mismo propósito que la de Box-Cox, con la diferencia de que se puede trabajar también con valores de 0 y negativos, así como en la fórmula:
+
+$$Y^{(\text{YJ})} = \frac{(Y + 1)^{\lambda_{\text{YJ}}} - 1}{\lambda_{\text{YJ}}}, Y \geq 0$$
+
+Además de crear la función de la transformación, también computaremos la función para encontrar el valor de lambda que maximice el p-value, usando la prueba de normalidad de Shapiro-Wilk.
+
 
 ```{r}
 # Definición de la transformación Yeo-Johnson para Y >= 0
@@ -256,6 +300,41 @@ cat("P-valor máximo alcanzado:", max_p_value, "\n")
 # Variable transformada
 Y_yj <- sapply(Y, yj_trans, lambda = lambda_yj)
 ```
+
+Encontramos la lambda óptima, con un p-value que rectifica la hipótesis nula de normalidad. La ecuación de la transformación con esta lambda es:
+
+$$Y^{(\text{YJ})} = \frac{(Y + 1)^{0.483} - 1}{0.483}$$
+
+Procedemos con el análisis de normalidad.
+
+
+```{r}
+tabla = data.frame(
+    Min = min(Y_yj),
+    Q1 = quantile(Y_yj, 0.25),
+    Mediana = median(Y_yj),
+    Media = mean(Y_yj),
+    Q3 = quantile(Y_yj, 0.75),
+    Max = max(Y_yj),
+    Sesgo = skewness(Y_yj),
+    Curtosis = kurtosis(Y_yj)
+  )
+
+print(tabla)
+```
+
+La media, mediana y rango medio 
+
+```{r}
+hist(Y_yj, main = "Yeo-Johnson", xlab = "Distancia", col = "lightyellow")
+```
+
+```{r}
+shapiro.test(Y_yj)
+ad.test(Y_yj)
+lillie.test(Y_yj)
+```
+
 
 ```{r}
 # 1. Crear variable transformada
