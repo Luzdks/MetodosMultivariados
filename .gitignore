@@ -1,0 +1,32 @@
+# Historial y datos de sesión de R
+.Rhistory
+.RData
+.Rapp.history
+
+# Archivos de RStudio
+.Rproj.user/
+
+# Archivos de caché y temporales
+*.Rout
+.locale
+*.fail
+*.Rout.save
+*.Rout.fail
+
+# Archivos de paquetes de R (si estás desarrollando un paquete)
+*.tar.gz
+*.Rcheck/
+/src/*.o
+/src/*.so
+/src/*.dll
+
+# Datos grandes o sensibles (opcional, recomendado)
+*.csv
+*.xlsx
+*.RDatai
+data/raw/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/

@@ -1,0 +1,52 @@
+---
+title: "Actividad 1.3"
+author: "Lucero Díaz"
+date: "2026-09-24"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problema 1
+
+Dadas las matrices A y B:
+
+$$ A = \begin{bmatrix} 2 & 4 & -3 \\ 0 & -2 & 5 \\ 9 & 0 & 6 \end{bmatrix} $$
+
+$$ B = \begin{bmatrix} 8 & 6 & -2 \\ -7 & 9 & -5 \\ -3 & 5 & 1 \end{bmatrix} $$
+
+Calcula:
+
+```{r}
+# Definición de matrices
+A <- matrix(c(2, 4, -3, 
+              0, -2, 5, 
+              9, 0, 6), ncol=3, byrow = TRUE)
+B <- matrix(c(8, 6, -2, 
+              -7, 9, -5, 
+              -3, 5, 1), ncol=3, byrow = TRUE)
+```
+
+
+```{r}
+# a) A + B
+cat("A+B \n")
+print(A+B)
+
+# b) 4A + 3B
+cat("\n4A + 3B \n")
+print(4*A + 3*B)
+
+# c) A'
+cat("\nA' \n")
+print(t(A))
+
+# d) A^(-1)
+cat("\nA' \n")
+print(t(A))
+
+```
+
+

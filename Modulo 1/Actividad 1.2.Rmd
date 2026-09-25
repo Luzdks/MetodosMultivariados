@@ -35,7 +35,7 @@ Se eligieron las pruebas de normalidad de Shapiro Wilk y Anderson Darling, donde
 * h0: La variable se distribuye de manera normal.
 * h1: La variable no se distribuye de manera normal.
 
-En la variable speed, se muestran como ambos valores superan el p-value = 0.05, lo que nos indica que la h0 se mantiene, así que speed sigue una distribución normal. Por otro lado, en la variable dist ambas pruebas salen con un p-value menor a 0.05, lo que refuta la hipótesis nula y nos indica que esta variable no sigue una distribución normal.
+En la variable speed, se muestran como ambos valores superan el p-value = 0.05, lo que nos indica que la h0 se mantiene, así que speed sigue una distribución normal. Por otro lado, en la variable dist ambas pruebas salen con un p-value menor o cercano a 0.05, lo que refuta la hipótesis nula y nos indica que esta variable no sigue una distribución normal.
 
 
 ```{r}
@@ -61,7 +61,7 @@ skewness(dist)
 kurtosis(dist)
 ```
 
-En el caso de la variable speed, se tiene una simetría cercana a 0, lo que indica efectivamente simetría, mientras que al ser su curtosis menor a 0, el resultado nos indica que la distribución es platicúrtica. En la variable dist, se observa como el valor de sesgo está más alejado del 0, y al ser positivo nos indica un ligero sesgo a la derecha; mientras que en su curtosis parece ser leptocúrtica al ser mayor a 0.
+En el caso de la variable speed, se tiene una simetría cercana a 0, lo que indica efectivamente simetría, mientras que al ser su curtosis menor a 3, pero cercana a este mismo resultado, la distribución puede llegar a ser mesocúrtica con indicios de palticúrtica. En la variable dist, se observa como el valor de sesgo está más alejado del 0, y al ser positivo nos indica un ligero sesgo a la derecha; mientras que en su curtosis parece dar indicios de ser leptocúrtica al ser mayor a 3, mas sin embargo su resultado se sigue manteniendo cercano a 3 como para aún poder llegarse a considerar mesocúrtica.
 
 
 ```{r}
@@ -111,7 +111,7 @@ curve(dnorm(x, mean = mean(dist), sd = sd(dist)),
 par(mfrow = c(1, 1))
 ```
 
-En la variable speed, se muestra como la curva de densidad empírica encaja en su mayoría con la curva normal teórica, a excepción de que la curva primero mencionada se muestra más platicúrtica. En el caso de la variable dist, la curva de densidad empírica muestra un claro sesgo a la derecha, así como también es más puntiaguda que la curva de la normal teórica al ser leptocúrtica.
+En la variable speed, se muestra como la curva de densidad empírica encaja en su mayoría con la curva normal teórica, a excepción de que la curva primero mencionada se muestra un poco más achatada. En el caso de la variable dist, la curva de densidad empírica muestra un claro sesgo a la derecha, así como también es un poco más puntiaguda que la curva de la normal teórica.
 
 
 * Emite una conclusión final sobre la normalidad de los datos en términos de todas las pruebas que realizaste.
@@ -224,7 +224,7 @@ tabla_comparativa <- rbind(
 print(tabla_comparativa)
 ```
 
-Podemos observar como en los datos originales la media, mediana y rango medio se encuentran considerablemente lejanos entre si, así como también la distribución está sesgada a la derecha y el leptocúrtica. Por otro lado, las nuevas distribuciones obtenidas tienen una media, mediana y rango medio con poca diferencia entre sí, y su sesgo se encuentra muy cercano a 0, lo que nos indica que las distribuciones son simétricas. Sin embargo, ambas curtosis siguen siendo altas, por lo que inferimos que también son leptocúrticas.
+Podemos observar como en los datos originales la media, mediana y rango medio se encuentran considerablemente lejanos entre si, así como también la distribución muestra indicios de estar ligeramente sesgada a la derecha y ser un poco platicúrtica (aunque su curtosis se sigue encontrando cerca de 3, por lo que tiende más a ser simétrica). Por otro lado, las nuevas distribuciones obtenidas tienen una media, mediana y rango medio con poca diferencia entre sí, y su sesgo se encuentra muy cercano a 0, lo que nos indica que las distribuciones son simétricas. Sin embargo, ambas curtosis muestran resultados menores a 3, que a pesar de aún ser algo cercanos a 3 para considerarse simétricas, también existe la posibilidad de que sean platicúrticas.
 
 
 ```{r}
@@ -323,11 +323,15 @@ tabla = data.frame(
 print(tabla)
 ```
 
-La media, mediana y rango medio 
+La media, mediana y rango medio no tienen tanta diferencia entre sí. El sesgo es muy cercano a 0, lo que da señales a simetría, y la curtosis, a pesar de ser menor a 3 y tener indicios de platicúrtica, por la cercanía a este mismo resultado también puede ser mesocúrtica.
+
 
 ```{r}
 hist(Y_yj, main = "Yeo-Johnson", xlab = "Distancia", col = "lightyellow")
 ```
+
+El histograma sigue tendencias mencionadas en el punto anterior. Podemos observar también una notable variabilidad en las barras.
+
 
 ```{r}
 shapiro.test(Y_yj)
@@ -335,13 +339,20 @@ ad.test(Y_yj)
 lillie.test(Y_yj)
 ```
 
+En todas las pruebas de normalidad se rectifica la hipótesis nula, por lo que podemor afirmar normalidad en esta distribución.
+
+
+Para la elección de la mejor transformación posible tomaremos en cuenta lo siguiente: las 3 distribuciones cumplieron satisfactoriamente todas las pruebas de normalidad, por lo que cualquiera que elijamos cumplirá este aspecto a la perfección. Con respecto a la economía del modelo, nos conviene elegir **la transformación de Box-Cox con la lambda aproximada**. Esto ya que un valor estándar y redondo como $\lambda = 0.5$ evita el sobreajuste a la muestra particular que producen parámetros decimales arbitrarios, además de que así evitamos agregarle la complejidad adicional que nos da Yeo-Johnson al este trabajar tambien con valores de 0 o negativos, ya que realmente nuestros datos son estrictamente positivos.
+
 
 ```{r}
-# 1. Crear variable transformada
+# 1. Crear variable transformada (lambda = 0.5)
 cars$dist_sqrt <- sqrt(cars$dist)
 
 # 2. Ajustar el modelo lineal transformado
 mod_sqrt <- lm(dist_sqrt ~ speed, data = cars)
+
+print(mod_sqrt)
 
 # 3. Gráfica del modelo transformado
 plot(cars$speed, cars$dist_sqrt,
@@ -352,6 +363,26 @@ plot(cars$speed, cars$dist_sqrt,
 abline(mod_sqrt, col = "firebrick", lwd = 2)
 grid()
 ```
+
+Aplicando la función lm en nuestras variables, obtenemos que el modelo lineal es:
+
+$$\widehat{\sqrt{\text{dist}}} = 1.2771 + 0.3224 \cdot \text{speed}$$
+
+```{r}
+# 1. Crear la variable transformada y ajustar el modelo
+cars$dist_sqrt <- sqrt(cars$dist)
+mod_sqrt <- lm(dist_sqrt ~ speed, data = cars)
+
+# 2. Resumen general (Contiene significancia individual 't' y conjunta 'F')
+summary(mod_sqrt)
+
+# 3. Coeficiente de correlación de Pearson (r)
+r_cor <- cor(cars$speed, cars$dist_sqrt)
+cat("Coeficiente de Correlación (r):", r_cor, "\n")
+```
+
+Con respecto a la significancia individual (t-test), observamos como la velocidad influye de manera altamente significativa en la distancia transformada. En la significancia conjunta (F-test), se rechaza la hipótesis nula global, confirmando la validez del modelo. Finalmente, los coeficientes de correlación y determinación son considerablemente altos, lo que confirma una correlación lineal positiva fuerte y una gran variabilidad explicada.
+
 
 ```{r}
 # Código en R para pruebas de validez
@@ -370,6 +401,21 @@ cooks <- cooks.distance(mod_sqrt)
 plot(cooks, type = "h", main = "Distancia de Cook", ylab = "Distancia")
 abline(h = 1, col = "red", lty = 2)
 ```
+
+Los resultados demuestran efectivamente normalidad, homocedasticidad, y se descarta la autocorrelación serial de los residuos. La distancia de Cook máxima alcanzada es de $0.1335$, valor muy inferior al umbral de corte usual ($1.0$). Por esto mismo, no existen datos atípicos influyentes que distorsionen la estimación.
+
+
+Para obtener la relación directa entre la distancia y la velocidad, elevamos al cuadrado ambos lados del modelo transformado:
+
+$$\sqrt{\text{dist}} = 1.2771 + 0.3224 \cdot \text{speed}$$
+
+$$\widehat{\text{dist}} = (1.2771 + 0.3224 \cdot \text{speed})^2$$
+
+Desarrollando el binomio al cuadrado:
+
+$$\widehat{\text{dist}} = 1.6310 + 0.8234 \cdot \text{speed} + 0.1039 \cdot \text{speed}^2$$
+
+Así es como obtenemos el modelo no lineal.
 
 ```{r}
 # 1. Gráfico de dispersión original
@@ -399,9 +445,9 @@ Se utilizó IA:
 
 (1) Herramienta: Gemini
 
-(2) Uso realizado: Ayuda en el código al momento de importar la librería cars, generación de las distribuciones de la segunda mitad de la primera sección, y sintaxis para la realización de elementos visuales como histogramas, boxplots, curvas de densidad entre otras.
+(2) Uso realizado: Ayuda en el código para toda la segunda parte de la actividad, al desconocer como programar las funciones de transformaciones y también al momento de desplegar las gráficas y los modelos lineales y no lineales.
 
-(3) Secciones donde se utilizó: Segunda mitad de la primera sección, específicamente en los incisos A y B, y a lo largo de la última sección en la importación de la librería, las gráficas QQ-Plot, las boxplots y los histogramas.
+(3) Secciones donde se utilizó: Parte 2 del documento: la mayor parte de los chunks de programación, mayormente al computar las funciones de las transformaciones mostradas y las gráficas de esta sección.
 
 (4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
 

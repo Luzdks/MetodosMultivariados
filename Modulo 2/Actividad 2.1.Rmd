@@ -1,0 +1,83 @@
+---
+title: "Actividad 2.1. Método de mínimos cuadrados"
+author: "Lucero Díaz"
+date: "2026-09-24"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Siguiendo el Método de Mínimos Cuadrados, las fórmulas para estimar la recta $\hat{y} = \hat{\beta}_0 + \hat{\beta}_1 x$ son:
+
+$$\hat{\beta}_1 = \frac{S_{xy}}{S_{xx}} = \frac{\sum x_i y_i - \frac{(\sum x_i)(\sum y_i)}{n}}{\sum x_i^2 - \frac{(\sum x_i)^2}{n}}$$
+
+$$\hat{\beta}_0 = \bar{y} - \hat{\beta}_1 \bar{x}$$
+
+Por lo que escribiremos las fórmulas manualmente en R para sacar ambos coeficientes, y posteriormente se hará una verificación con la función lm, función que automatiza los cálculos del método de mínimos cuadrados en R.
+
+
+```{r}
+# Método Mínimos Cuadrados
+sum_x = 2.86 + 7.29 + 2.05 + 9.05 + 8.61 + 5.67
+sum_y = 3.88 + 7.47 + 2.83 + 8.88 + 7.43 + 4.33
+sum_xy = 2.86*3.88 + 7.29*7.47 + 2.05*2.83 + 9.05*8.88 + 8.61*7.43 + 5.67*4.33
+sum_x2 = 2.86^2 + 7.29^2 + 2.05^2 + 9.05^2 + 8.61^2 + 5.67^2
+sum_xx = (sum_x)^2
+mean_x = sum_x/6
+mean_y = sum_y/6
+
+B1 = (sum_xy - (sum_x)*(sum_y)/6)/(sum_x2 - (sum_xx)/6)
+B0 = mean_y - B1*mean_x
+
+cat("El coeficiente B1 por mínimos cuadrados es igual a ", B1, "\n")
+cat("El coeficiente B0 por mínimos cuadrados es igual a ", B0, "\n")
+
+
+# Método R (función lm)
+x <- c(2.86, 7.29, 2.05, 9.05, 8.61, 5.67)
+y <- c(3.88, 7.47, 2.83, 8.88, 7.43, 4.33)
+
+modelo <- lm(y ~ x)
+
+cat("El coeficiente B1 por lm es igual a ", coef(modelo)[2], "\n")
+cat("El coeficiente B0 por lm cuadrados es igual a ", coef(modelo)[1], "\n")
+
+```
+
+Observamos que los resultados son los mismos, por lo que hicimos de manera correcta los cálculos en la primera parte.
+
+Ahora para esta segunda parte, a partir de un conjunto de datos graficaremos estos mismos así como la línea ajustada de la regresión lineal utilizando el método de mínimos cuadrados, mediante la aplicación de la función lm antes vista.
+
+
+```{r}
+datos <- read.csv("C:/Users/ludio/Downloads/2_sample_data.csv")
+
+modelo <- lm(y ~ x, data = datos)
+
+plot(datos$x, datos$y,
+     main = "Regresión Lineal Simple por Mínimos Cuadrados",
+     xlab = "Variable X",
+     ylab = "Variable Y",
+     pch = 19,
+     col = "steelblue")
+abline(modelo, col = "red", lwd = 2)
+grid()
+```
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en la gráfica realizada para la segunda parte de la actividad
+
+(3) Secciones donde se utilizó: Me dio la función para graficar los puntos del dataset y también para mostrar la línea de la regresión lineal.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
