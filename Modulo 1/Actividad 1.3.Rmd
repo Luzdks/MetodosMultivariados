@@ -60,6 +60,12 @@ print(det(t(A)))
 
 ## Problema 2
 
+Dadas las matrices A y B, calcula AB:
+
+$$ A = \begin{bmatrix} 2 & 1 & 3 & -3 \\ 3 & 0 & -2 & -1 \\ 4 & 5 & 0 & -5 \end{bmatrix} $$
+
+$$ B = \begin{bmatrix} 4 & 2 \\ -3 & 1 \\ 5 & -2 \\ 8 & 0 \end{bmatrix} $$
+
 ```{r}
 A <- matrix(c(2, 1, 3, -3, 
               3, 0, -2, -1, 
@@ -71,15 +77,135 @@ B <- matrix(c(4, 2,
 ```
 
 ```{r}
-# Multiplicacion
+# Multiplicacion AB
+cat("AB\n")
 print(A%*%B)
 ```
 
 
 ## Problema 3
 
+Baja el archivo del menú MacDonald. Explora las variables y selecciona 4 variables cuantitativas:
+
+* Calorias (Calories)
+* Proteinas (Protein)
+* Carbohidratos (Carbohydrates)
+* Azúcares (Sugars)
+
+Calcula:
+
 ```{r}
+# Carga de datos
+datos <- read.csv("C:/Users/ludio/Downloads/mc-donalds-menu.csv")
+
+variables <- c("Calories", "Protein", "Carbohydrates", "Sugars")
+
+# Matriz de datos
+matriz <- as.matrix(datos[, variables])
+
+# Cantidad de datos y variables
+n <- nrow(matriz)
+p <- ncol(matriz)
+
+# Vector columna de 1_n
+ones <- matrix(1, nrow = n, ncol = 1)
+
+# a) Vector de medias
+cat("Vector de medias \n")
+vector_medias <- (1 / n) * t(matriz) %*% ones
+print(vector_medias)
+
+# b) Matriz de varianzas y covarianzas
+cat("\nMatriz de varianzas y covarianzas \n")
+Z <- matriz - ones %*% t(vector_medias)
+S <- (1 / n) * t(Z) %*% Z
+print(S)
+
+# c) Matriz de correlacion
+cat("\nMatriz de correlación \n")
+varianzas <- diag(S)
+D_inv_sqrt <- diag(1 / sqrt(varianzas))
+R <- D_inv_sqrt %*% S %*% D_inv_sqrt
+print(R)
+
+# d1) Valores y vectores propios a partir de la matriz de covarianzas (S)
+decomp_S <- eigen(S)
+valores_propios_S <- decomp_S$values
+vectores_propios_S <- decomp_S$vectors
+
+cat("\nMatriz de Covarianzas (S) \n")
+cat("\nValores propios \n")
+print(valores_propios_S)
+cat("\nVectores propios \n")
+print(vectores_propios_S)
+
+# d2) Valores y vectores propios a partir de la matriz de correlación (R)
+decomp_R <- eigen(R)
+valores_propios_R <- decomp_R$values
+vectores_propios_R <- decomp_R$vectors
+
+cat("\nMatriz de Correlación (R) \n")
+cat("\nValores propios \n")
+print(valores_propios_R)
+cat("\nVectores propios \n")
+print(vectores_propios_R)
 
 ```
 
 
+```{r}
+# Verificacion de resultados
+   
+# a) Vector de medias
+cat("Vector de medias \n")
+vector_medias <- colMeans(matriz)
+print(vector_medias)
+
+# b) Matriz de varianzas y covarianzas
+cat("\nMatriz de varianzas y covarianzas \n")
+S <- cov(matriz)
+print(S)
+
+# c) Matriz de correlacion
+cat("\nMatriz de correlación \n")
+R <- cor(matriz)
+print(R)
+
+# Usamos los mismos comandos que en la celda anterior
+# d1) Valores y vectores propios a partir de la matriz de covarianzas (S)
+decomp_S <- eigen(S)
+valores_propios_S <- decomp_S$values
+vectores_propios_S <- decomp_S$vectors
+
+cat("\nMatriz de Covarianzas (S) \n")
+cat("\nValores propios \n")
+print(valores_propios_S)
+cat("\nVectores propios \n")
+print(vectores_propios_S)
+
+# d2) Valores y vectores propios a partir de la matriz de correlación (R)
+decomp_R <- eigen(R)
+valores_propios_R <- decomp_R$values
+vectores_propios_R <- decomp_R$vectors
+
+cat("\nMatriz de Correlación (R) \n")
+cat("\nValores propios \n")
+print(valores_propios_R)
+cat("\nVectores propios \n")
+print(vectores_propios_R)
+```
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en cómo realizar la matriz de correlación siguiendo la fórmula.
+
+(3) Secciones donde se utilizó: Problema 3, específicamente en el inciso C de la matriz de correlación.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.

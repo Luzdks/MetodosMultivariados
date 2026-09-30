@@ -1,0 +1,169 @@
+---
+title: "Actividad 1.4 La matriz de datos"
+author: "Lucero Díaz"
+date: "2026-09-30"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Actividad a mano
+
+
+
+## Verificación en R
+
+```{r}
+# Problema 1
+X <- matrix(c(
+  12, 17, 29,
+  18, 20, 38,
+  14, 16, 30,
+  20, 18, 38,
+  16, 19, 35
+), nrow = 5, byrow = TRUE)
+
+cat("Matriz Original X \n")
+print(X)
+
+# Vector de medias
+x_bar <- colMeans(X)
+
+# Matriz de datos centrados
+X_c <- scale(X, center = TRUE, scale = FALSE)
+
+# Vector de dependencia lineal
+a <- matrix(c(1, 1, -1), ncol = 1)
+
+# Verificación X_c %*% a
+Xc_a <- X_c %*% a
+
+cat("\nVector de Medias \n")
+print(x_bar)
+
+cat("\nMatriz de Datos Centrados X_c \n")
+print(X_c)
+
+cat("\nVerificación X_c %*% a (debe dar vector de ceros) \n")
+print(round(Xc_a, 10))
+
+# Matriz de covarianza muestral
+S <- cov(X)
+
+# Varianza generalizada
+det_S <- det(S)
+
+# Producto S %*% a
+Sa <- S %*% a
+
+# Reescalado de 'a' a vector unitario (norma 1)
+a_norm <- a / sqrt(sum(a^2))
+
+# Valores y vectores propios de S
+descomposicion <- eigen(S)
+
+cat("\nMatriz de Covarianza Muestral S \n")
+print(S)
+
+cat("\nVarianza Generalizada det(S) \n")
+print(round(det_S, 10))
+
+cat("\nProducto S %*% a \n")
+print(round(Sa, 10))
+
+cat("\nVector 'a' Normalizado (Vector Propio de norma 1) \n")
+print(a_norm)
+
+cat("\nValores Propios (Eigenvalues) de S \n")
+print(round(descomposicion$values, 10))
+
+cat("\nVectores Propios (Eigenvectors) de S \n")
+print(descomposicion$vectors)
+
+Xa <- X %*% a
+
+cat("\nVerificación X %*% a \n")
+print(Xa)
+```
+
+
+```{r}
+# Problema 2
+X <- matrix(c(
+  3, 1, 0,
+  6, 4, 6,
+  4, 2, 2,
+  7, 0, 3,
+  5, 3, 4
+), nrow = 5, byrow = TRUE)
+
+cat("Matriz Original X \n")
+print(X)
+
+# Vector de medias por columna
+x_bar <- colMeans(X)
+
+# Matriz centrada (restando la media de cada columna)
+X_c <- scale(X, center = TRUE, scale = FALSE)
+
+# Vector de dependencia lineal
+a <- matrix(c(1, 1, -1), ncol = 1)
+
+# Verificación de X_c * a = 0
+Xc_a <- X_c %*% a
+
+cat("\nVector de Medias \n")
+print(x_bar)
+
+cat("\nMatriz de Datos Centrados X_c \n")
+print(X_c)
+
+cat("\nVerificación X_c %*% a (debe dar vector de ceros) \n")
+print(round(Xc_a, 10))
+
+# Matriz de covarianza muestral
+S <- cov(X)
+
+# Varianza generalizada: det(S)
+det_S <- det(S)
+
+cat("\nMatriz de Covarianza Muestral S \n")
+print(S)
+
+cat("\nVarianza Generalizada det(S) \n")
+print(round(det_S, 10))
+
+# 1. Rango de la matriz X mediante descomposición QR
+rango_X <- qr(X)$rank
+
+# 2. Submatriz de 3x3 formada por las filas 1, 2 y 4
+M <- X[c(1, 2, 4), ]
+det_M <- det(M)
+
+cat("\nRango de la Matriz X \n")
+cat("Rango de X:", rango_X, "(si es 3, las columnas son independientes)\n")
+
+cat("\nSubmatriz M (filas 1, 2 y 4) y su Determinante \n")
+print(M)
+cat("det(M):", det_M, "\n")
+
+```
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código de verificación en R de ambos problemas, así como guía en cómo resolver el último inciso del Problema 2.
+
+(3) Secciones donde se utilizó: Código de R para verificación de resultados y en el inciso c del Problema 2.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden. Esto incluye también la guía recibida para la resolución del problema a mano, donde se confirmó que el resultado buscado efectivamente se obtenía.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+
