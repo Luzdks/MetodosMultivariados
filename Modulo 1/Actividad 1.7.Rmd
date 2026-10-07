@@ -1,0 +1,35 @@
+---
+title: "Actividad 1.7"
+author: "Lucero Díaz"
+date: "2026-10-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## PARTE I
+
+### Realiza el análisis de los valores y vectores propios con la matriz de covarianzas y con la de correlación. Analiza la varianza explicada por cada componente en cada caso e interpreta dentro del contexto del problema.
+
+```{r}
+X <- read.csv("C:/Users/ludio/Downloads/paises_mundo.csv")
+
+S = cov(X)
+R = cor(X)
+
+eigen_S = eigen(S)
+valores_propios_S = eigen_S$values
+vectores_propios_S = eigen_S$vectors
+
+eigen_R = eigen(R)
+valores_propios_R = eigen_R$values
+vectores_propios_R = eigen_R$vectors
+
+
+
+```
+
+
+

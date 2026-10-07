@@ -1,0 +1,184 @@
+---
+title: "Actividad 2.3 Regresión lineal múltiple"
+author: "Lucero Díaz"
+date: "2026-10-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Análisis exploratorio
+
+```{r}
+library(car)
+library(lmtest)
+library(plot3D)
+```
+
+```{r}
+# Carga del dataset
+datos <- read.csv("C:/Users/ludio/Downloads/datosRes-1 (3).csv")
+```
+
+### Gráficos de dispersión entre variables.
+```{r}
+# Matriz de dispersión completa
+pairs(datos, main = "Gráfico de Dispersión entre Variables")
+```
+
+### Matriz de correlación de los datos
+```{r}
+# Matriz de correlación
+cor_X = cor(datos)
+cat("Matriz de correlación: \n")
+print(cor_X)
+```
+
+Podemos observar como hay una correlación positiva fuerte entre varios pares de variables (>0.7): Altura amarre y Resistencia, Altura amarre y Altura poste, Longitud y Altura poste, Altura poste y Resistencia, y finalmente Longitud y Resistencia (correlación positiva más fuerte con ~0.98, cercana a 1).
+
+### Gráficos de boxplot/histogramas
+
+```{r}
+par(mfrow = c(2, ncol(datos)), mar = c(3, 3, 2, 1))
+for (col in colnames(datos)) {
+  hist(datos[[col]], main = paste("Hist. de", col), xlab = col, col = "lightblue", cex.main = 0.8)
+  boxplot(datos[[col]], main = paste("Boxplot de", col), col = "lightgreen", cex.main = 0.8)
+}
+par(mfrow = c(1, 1))
+```
+
+Podemos observar que la mayoría de las variables parecen tener sesgo a la derecha por lo que vemos en los histogramas y en los boxplots, al también presentarse datos atípicos extremadamente positivos. La única excepción es la variable Altura matriz, donde su boxplot muestra que la distrubución de los datos parece simétrica y su histograma no parece mostrar un sesgo a la derecha o izquierda notable.
+
+
+## 2. Método de mínimos cuadrados
+
+El método de mínimos cuadrados para regresión lineal múltiple utiliza el vector de coeficientes $\hat{\boldsymbol{\beta}}$, donde la fórmula correspondiente es:
+
+$$\hat{\boldsymbol{\beta}} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T \mathbf{Y}$$
+
+```{r}
+Y <- datos$Resistencia
+X <- as.matrix(cbind(Intercepto = 1, datos[, c("Longitud", "Altura.matriz", "Altura.poste", "Altura.amarre")]))
+
+# Fórmula matricial
+beta_mco <- solve(t(X) %*% X) %*% t(X) %*% Y
+cat("Coeficientes calculados por mínimos cuadrados \n")
+print(beta_mco)
+```
+
+La ecuación que describe el modelo de regresión lineal múltiple planteado es:
+
+$$\hat{Y} = 1.068134045 + 2.484232443 \times Longitud + 0.008553692 \times Altura.matriz + 0.622369141 \times Altura.poste + 2.293923555 \times Altura.amarre$$
+
+
+## 3. Regresión lineal múltiple en R
+
+```{r}
+modelo_r <- lm(Resistencia ~ Longitud + Altura.matriz + Altura.poste + Altura.amarre, data = datos)
+
+summary(modelo_r)
+
+comparacion <- cbind(MC_Matricial = beta_mco[, 1], lm_r = coef(modelo_r))
+cat("Comparación mínimos cuadrados vs lm() \n")
+print(comparacion)
+```
+
+Graficaremos en 3 dimensiones para observar la dispersión entre la variable dependiente (Resistencia) y las dos variables que tienen una mayor correlación positiva con esta variable (Longitud y Altura poste).
+
+```{r}
+scatter3D(x = datos$Longitud, y = datos$Altura.poste, z = datos$Resistencia, col="blue", cex = 0.9 , pch=19, xlab= "Longitud", ylab= "Altura poste", zlab= "Resistencia",phi=0, theta=20)
+```
+
+
+## 4. Evaluación del modelo
+
+Utilizaremos el modelo proporcionado con la función de R, puesto que es el óptimo computacionalmente y el que debe estar más acercado a cómo se describe la variable dependiente con base a las demás variables.
+
+### Colinealidad de las variables involucradas
+
+Para verificar la colinealidad/multicolinealidad entre variables, se utiliza el Factor de Inflación de la Varianza ($\text{VIF}$). Un valor VIF mayor a 5 o 10 indica una multicolinealidad problemática entre las variables.
+
+```{r}
+cat("Factor de Inflación de la Varianza (VIF) \n")
+print(vif(modelo_r))
+```
+
+Por lo que se observa en los resultados, no se observa una colinealidad problemática entre las variables.
+
+```{r}
+summary(modelo_r)
+```
+
+### Variabilidad explicada por el modelo (coeficiente de determinación)
+
+El coeficiente de determinación ($R^2$) indica un 98.99\% de variabilidad explicada por el modelo, lo cual es un indicio muy bueno del rendimiento de este mismo.
+
+### Significancia del modelo: Valor p del modelo (F)
+
+Como el p-value de la prueba F del modeo es prácticamente 0 (2.2e-16), podemos afirmar que las variables en conjunto explican de manera significativa a la variable dependiente.
+
+### Significancia de \hat{B_i}
+
+Todas las variables son estadísticamente significativas para el modelo, a excepción de la variable Altura poste, donde su p-value supera el nivel de significancia de 0.05.
+
+### Economía del modelo y variabilidad explicada (Coeficiente de determinación)
+
+Dado que Altura poste no es significativa ($p > 0.05$), se puede evaluar un modelo simplificado (parsimonioso) excluyendo dicha variable sin perder capacidad explicativa.
+
+
+## 5. Validación del modelo
+
+```{r}
+residuos <- residuals(modelo_r)
+ajustados <- fitted(modelo_r)
+
+qqnorm(residuos); qqline(residuos, col = "red")
+shapiro.test(residuos) 
+
+t.test(residuos)
+
+plot(ajustados, residuos, xlab = "Valores Ajustados", ylab = "Residuos")
+abline(h = 0, col = "red", lty = 2)
+
+bptest(modelo_r) 
+
+dwtest(modelo_r) 
+```
+
+### Normalidad de los residuos
+
+Mediante la prueba de Shapiro-Wilk, se observa como el p-value es mayor a 0.05. No se rechaza la hipótesis nula; los residuos distribuyen de manera normal.
+
+### Verificación de media cero
+
+Se observa como la media de los residuos es prácticamente 0 (1.64e-16)
+
+### Homocedasticidad
+
+Se realizó la prueba de Breusch-Pagan con $p\text{-valor} = 0.4049 > 0.05$. Se satisface el supuesto de varianza constante de los errores.
+
+### Independencia
+
+Se llevó a cabo la prueba de Durbin-Watson $= 1.572$ ($p\text{-valor} = 0.088 > 0.05$). No existe evidencia significativa de autocorrelación lineal en los residuos.
+
+
+## 6. Conclusiones
+
+Podemos concluir que el modelo de regresión lineal múltiple elegido y evaluado (modelo realizado por la función de R) explica de manera eficaz la variable independiente, es decir, Resistencia, al tener una variabilidad explicada cercana al 99\%. Las variable que tiene una mayor significancia estadística es la Longitud, seguida por la Altura amarre y Altura matriz; la única no significativa es Altura poste. Debido a que todos los supuestos clásicos de regresión (normalidad, homocedasticidad, independencia y media cero) se cumplen satisfactoriamente, las inferencias y predicciones obtenidas mediante este modelo son estadísticamente válidas y confiables. Sin embargo, puede existir una mejora en el rendimiento del modelo si no se toma en cuenta la variable no significativa anteriormente mencionada.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, mayormente en gráficos, en el VIF y en la validación de supuestos.
+
+(3) Secciones donde se utilizó: Incisos 1, 2, 4 y 5.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.

@@ -1,0 +1,133 @@
+---
+title: "Actividad 1.5"
+author: "Lucero Díaz"
+date: "2026-09-30"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 1. Hallar el procedimiento para el cálculo de probabilidad de que $P(X_1 \le 3, X_2 \le 2)$ con $X1, X2$ se distribuyen Normal con $\mu = (\mu_1 = 2.5, \mu_2 = 4)$ y $\Sigma = \begin{bmatrix} 1.2 & 0 \\ 0 & 2.3 \end{bmatrix}$
+
+```{r}
+library(mnormt)
+library(MASS)
+
+x = c(3, 2)
+miu = c(2.5, 4)
+sigma = matrix(c(1.2, 0, 0, 2.3), nrow=2)
+
+res = pmnorm(x, miu, sigma)
+res
+```
+
+### 2. Grafique la anterior distribución bivariada del problema 1
+
+
+```{r}
+# Definir los valores de las variables 4 desviaciones alrededor de su media
+x1_l = 2.5 - 4*sqrt(1.2)
+x1_r = 2.5 + 4*sqrt(1.2)
+x2_l = 4 - 4*sqrt(2.3)
+x2_r = 4 + 4*sqrt(2.3)
+
+x1 <- seq(x1_l, x1_r, 0.1) 
+x2 <- seq(x2_l, x2_r, 0.1)
+mu <- c(2.5, 4)
+sigma <- matrix(c(1.2, 0, 0, 2.3), nrow=2)
+f <- function(x1, x2) dmnorm(cbind(x1, x2), mu, sigma)
+z <- outer(x1, x2, f)
+#create surface plot
+persp(x1, x2, z, theta=-30, phi=25, expand=0.6, ticktype='detailed', col = "pink")
+```
+
+### 3. Grafique los contornos de la anterior distribución normal bivariada correspondiente a las alturas de  0.01,  0.03, 0.05, 0.07, 0.09. Antes de realizar la actividad contesta: ¿A qué altura (0.01, 0.03, 0.05, 0.07, 0.09, 0.1) crees que esté el contorno con el diámetro más pequeño? ¿y el más grande?
+
+El contorno más pequeño se encuentra en la altura más grande (0.1), debido a que a alturas más elevadas el diámetro de la superficie encierra una región más pequeña. Por lo que, el contorno con el diámetro más grande se encuentra en la altura más cercana a la base, es decir, 0.01, puesto que la campana se expande de manera horizontal y termina abarcando una región más amplia.
+
+
+```{r}
+#create bivariate normal distribution
+x1 <- seq(x1_l, x1_r, 0.1) 
+x2 <- seq(x2_l, x2_r, 0.1)
+mu <- c(2.5, 4)
+sigma <- matrix(c(1.2, 0, 0, 2.3), nrow=2)
+f <- function(x1, x2) dmnorm(cbind(x1, x2), mu, sigma)
+z <- outer(x1, x2, f)
+
+#create contour plot
+contour(x1, x2, z, col = "blue", levels = c(0.01, 0.03, 0.05, 0.07, 0.09, 0.1))
+```
+
+* ¿Cómo se relaciona el resultado del primer problema con el segundo?
+
+El primer inciso nos muestra la probabilidad acumulada de $P(X_1 \le 3, X_2 \le 2)$, mientras que el segundo inciso grafica la función de densidad en 3D. El primer valor obtenido representa el volumen acumulado bajo la superficie tridimensional descrita en la función de densidad de probabilidad. Esta superficie es la representación geométrica de la densidad y la probabilidad acumulada es la integral de este valor en la región delimitada.
+
+* ¿Cómo se relacionan los gráficos de los incisos 2 y 3?
+
+El gráfico de contornos (inciso 3) es la proyección bidimensional que resulta de cortar la superficie 3D (inciso 2) con planos horizontales en las alturas $z \in \{0.01, 0.03, 0.05, 0.07, 0.09, 0.1\}$. Cada elipse o círculo proyectado une todos los puntos del plano $(x_1, x_2)$ que comparten exactamente la misma densidad de probabilidad.   
+
+* ¿Cómo se relaciona la altura del contorno (pregunta3) con el porcentaje de datos que abarcaría el contorno?
+
+Se obtiene una relación donde a menor altura, al estar cerca de la base de la campana se obtiene un mayor porcentaje de los datos; mientras que a mayor altura, al tener un diámetro menor el contorno, conseguimos un porcentaje mucho menor de datos.
+
+
+**Nota**: Se omitió el punto 4 por algunos conceptos teóricos que para este momento no se han visto en clase.
+
+
+### 4. 
+
+
+### 5. Aplique una prueba de normaldad bivariada a los siguientes datos para un nivel de significación de 0.05
+
+```{r}
+library(MVN)
+
+M = read.csv("C:/Users/ludio/Downloads/datos-A2.csv")
+
+p = 2        #indica que se trata de dos variables
+# Vector de medias
+X = colMeans(M)
+#Matriz de covarianzaS
+S = cov(M)
+#Distancia de Mahalanobis
+d2M =  mahalanobis(M,X,S)
+
+#Multinormalidad Test gráfico Q-Q Plot
+plot(qchisq(((1:nrow(M)) - 1/2)/nrow(M),df=p),sort( d2M ) )
+abline(a=0, b=1,col="red")
+
+## Test de Multinormalidad: Método Sesgo y kurtosis de Mardia
+mvn(M, mvn = "mardia")
+```
+
+* Interpreta el gráfico de QQ-Plot. Indica: ¿qué semejanzas hay entre este gráfico y el caso univariado? ¿qué diferencias?
+
+Así como en el caso univariado, podemos analizar la normalidad de la distribución mediante la cercanía existente en los puntos a la línea planteada. La mayor diferencia radica en qué es lo que se grafica: mientras que en el caso univariado se grafican los datos originales directamente contra los cuantiles de la distribición Normal Estándar, en el caso bivariado se utilizan las distancias de Mahalanobis contra los cuantiles de una Chi-cuadrado con 2 grados de libertad.
+
+* Interpreta los valores p de los resultados correspondientes a Mardia Skewness y Mardia Kurtosis. Recuerde que para el caso de Normalidad Ho: Los datos se distribuyen normalmente, H1: Los datos no se distribuyen normalmente. Observa las significancias univariadas y multivariadas.
+
+Para las significancias multivariadas, observamos los resultados de Mardia Skewness y Mardia Kurtosis: en ambos se obtienen valores p mayores a 0.05, que es nuestro nivel de significación utilizado, lo que significa que la hipótesis nula h0 no se rechaza y observamos que tanto el sesgo como la curtosis siguen valores de normalidad multivariada. Sin embargo, en las significancias univariadas, mediante la prueba de normalidad Anderson-Darling, notamos que la variable x consigue un p-value menor a 0.05, lo que rechaza h0 y nos dice que la distribución de esta variable no es normal univariada. 
+
+* Concluye sobre la normalidad multivariada de la matriz X y la normalidad univariada de cada una de las variables que componen la matriz X.
+
+Como observamos antes, los resultados de las pruebas de normalidad arrojaron que la distribución multivariada de la matriz X parece seguir una distribución normal multivariada, así como también la distribución de la variable y sigue una distribución normal univariada; por otro lado, la distribución de la variable x no sigue normalidad univariada. Por lo tanto, no se puede afirmar normalidad multivariada en la matriz X, ya que el supuesto de normalidad univariada en cada una de las variables no se cumple. En conclusión, a pesar de que la prueba Mardia global no rechaza h0 para asimetría ni curtosis conjuntos, no es suficiente evidencia para afirmar la distribución normal multivariada, puesto que no se cumple la condición de que todas las variables posean una distribución normal univariada.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en la redacción de las preguntas después del punto 3, modificaciones en el código para la prueba de Mardia en el punto 5 y en comprensión de resultados para esta última prueba de este inciso.
+
+(3) Secciones donde se utilizó: Inciso 3 código y preguntas, Inciso 5 prueba de Mardia y comprensión de resultados de esta.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+

@@ -1,0 +1,128 @@
+---
+title: "Actividad 2.2. Intervalos de confianza y de predicción"
+author: "Lucero Díaz"
+date: "2026-10-01"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 1. Supongamos que tenemos el siguiente conjunto de datos: $x = (1, 2, 3, 4, 5)$ y $y = (1.64, 2.30, 3.68, 4.69, 3.89)$. Construya los intervalos de confianza para $\hat{B_0}$ y $\hat{B_1}$ con un nivel de significancia de $\alpha = 0.05$ utilizando el método de mínimos cuadrados y construya las bandas de significancia y predicción para un valor de $x_0$ arbitrario. Supongamos ahora que obtenemos la observación $(x_0, y_0) = (5, 5.04)$. ¿Está este valor dentro de nuestro intervalo de predicción?
+
+```{r}
+# Datos
+x <- c(1, 2, 3, 4, 5)
+y <- c(1.64, 2.30, 3.68, 4.69, 3.89)
+
+# Modelo de regresión lineal simple por mínimos cuadrados
+modelo <- lm(y ~ x)
+
+# Intervalos de confianza para B0 y B1 (alpha = 0.05, por lo que nivel de confianza = 95%)
+ic_beta <- confint(modelo, level = 0.95)
+cat("Intervalos de Confianza para los Coeficientes \n")
+print(ic_beta)
+
+# Evaluación en el punto x0 = 5
+x0_df <- data.frame(x = 5)
+
+# Intervalo de predicción en x0 = 5
+ip_x0 <- predict(modelo, newdata = x0_df, interval = "prediction", level = 0.95)
+cat("\nIntervalo de Predicción para x0 = 5 \n")
+print(ip_x0)
+
+# Verificación de la observación (x0, y0) = (5, 5.04)
+y0 <- 5.04
+esta_dentro <- (y0 >= ip_x0[,"lwr"]) && (y0 <= ip_x0[,"upr"])
+cat("\n¿El valor y0 = 5.04 está dentro del intervalo de predicción?:", esta_dentro, "\n") # Los resultados confirman que el valor y0 sí se encuentra en el intervalo de predicción.
+
+# Gráfico con bandas de confianza y predicción para un x0 arbitrario
+x_grid <- seq(min(x) - 0.5, max(x) + 0.5, length.out = 100)
+grid_df <- data.frame(x = x_grid)
+
+# Bandas
+banda_conf <- predict(modelo, newdata = grid_df, interval = "confidence", level = 0.95)
+banda_pred <- predict(modelo, newdata = grid_df, interval = "prediction", level = 0.95)
+
+# Graficar puntos y recta ajustada
+plot(x, y, pch = 19, col = "blue", xlim = c(0, 6), ylim = c(0, 8),
+     xlab = "x", ylab = "y", main = "Problema 1: Regresión, Bandas de Confianza y Predicción", cex.main = 0.8)
+abline(modelo, col = "black", lwd = 2)
+
+# Dibujar bandas
+lines(x_grid, banda_conf[, "lwr"], col = "red", lty = 2, lwd = 2)
+lines(x_grid, banda_conf[, "upr"], col = "red", lty = 2, lwd = 2)
+lines(x_grid, banda_pred[, "lwr"], col = "darkgreen", lty = 3, lwd = 2)
+lines(x_grid, banda_pred[, "upr"], col = "darkgreen", lty = 3, lwd = 2)
+
+# Graficar el punto de prueba (5, 5.04)
+points(5, 5.04, col = "purple", pch = 18, cex = 1.5)
+text(5, 5.04, labels = " (5, 5.04)", pos = 4, col = "purple")
+
+# Leyenda
+legend("topleft", 
+       legend = c("Datos", "Recta Mínimos Cuadrados", "Banda de Confianza (95%)", "Banda de Predicción (95%)", "(x0, y0) = (5, 5.04)"),
+       col = c("blue", "black", "red", "darkgreen", "purple"),
+       pch = c(19, NA, NA, NA, 18), lty = c(NA, 1, 2, 3, NA), lwd = c(NA, 2, 2, 2, NA), cex = 0.65)
+```
+
+
+### 2. Lee los datos y genera un gráfico con estos puntos así como la recta ajustada usando el método de mínimos cuadrados. Genera igualmente las bandas de significancia y predicción para estos datos.
+
+```{r}
+# Datos
+datos <- read.csv("C:/Users/ludio/Downloads/2_sample_data (1).csv")
+
+# Modelo de regresión lineal simple por mínimos cuadrados
+modelo1 <- lm(y ~ x, data = datos)
+
+# Malla continua de puntos para suavizar el trazo de las bandas
+x_grid <- data.frame(x = seq(min(datos$x), max(datos$x), length.out = 200))
+
+# Cálculo de bandas de confianza (significancia) y predicción
+banda_conf <- predict(modelo1, newdata = x_grid, interval = "confidence", level = 0.95)
+banda_pred <- predict(modelo1, newdata = x_grid, interval = "prediction", level = 0.95)
+
+# Generación del gráfico (Opción R Base)
+plot(datos$x, datos$y, pch = 16, col = "gray40",
+     xlab = "x", ylab = "y",
+     main = "Problema 2: Datos, Recta MCO y Bandas de Confianza / Predicción", cex.main = 0.8)
+
+# Recta de regresión ajustada
+lines(x_grid$x, banda_conf[, "fit"], col = "blue", lwd = 2)
+
+# Bandas de confianza (rojo discontinuo)
+lines(x_grid$x, banda_conf[, "lwr"], col = "red", lty = 2, lwd = 2)
+lines(x_grid$x, banda_conf[, "upr"], col = "red", lty = 2, lwd = 2)
+
+# Bandas de predicción (verde punteado)
+lines(x_grid$x, banda_pred[, "lwr"], col = "green3", lty = 3, lwd = 2)
+lines(x_grid$x, banda_pred[, "upr"], col = "green3", lty = 3, lwd = 2)
+
+# Leyenda
+legend("topleft", 
+       legend = c("Datos observados", "Recta Mínimos Cuadrados", "Banda de Confianza (95%)", "Banda de Predicción (95%)"),
+       col = c("gray40", "blue", "red", "green3"),
+       pch = c(16, NA, NA, NA),
+       lty = c(NA, 1, 2, 3),
+       lwd = c(NA, 2, 2, 2), 
+       cex = 0.65)
+```
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, específicamente al momento de encontrar los comandos para hacer los intérvalos de confianza y para realizar las gráficas, tanto la regresión lineal por mínimos cuadrados como las bandas de confianza y predicción.
+
+(3) Secciones donde se utilizó: Problemas 1 y 2, mayormente para realizar las visualizaciones necesarias.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+

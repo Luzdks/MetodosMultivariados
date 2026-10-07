@@ -1,0 +1,141 @@
+---
+title: "Actividad 2.4 Detección de datos influyentes"
+author: "Lucero Díaz"
+date: "2026-10-01"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(car)
+
+# Modelo regresión lineal múltiple
+datos <- read.csv("C:/Users/ludio/Downloads/datosRes-1 (2).csv")
+
+modelo_completo <- lm(Resistencia ~ Longitud + Altura.matriz + Altura.poste + Altura.amarre, data = datos)
+summary(modelo_completo)
+```
+
+
+```{r}
+# Selección por el criterio AIC
+modelo_aic <- step(modelo_completo, direction = "both", trace = 1)
+
+# Selección por el criterio BIC (requiere k = log(n))
+n <- nrow(datos)
+modelo_bic <- step(modelo_completo, direction = "both", trace = 1, k = log(n))
+
+# Asigna el modelo seleccionado a una variable de trabajo
+modelo <- modelo_aic
+```
+
+
+```{r}
+# A. Residuos estandarizados
+rstandard_val <- rstandard(modelo)
+
+# B. Residuos studentizados
+rstudent_val <- rstudent(modelo)
+
+# Identificar atípicos con criterio de desviación
+atipicos_std   <- which(abs(rstandard_val) > 2)
+atipicos_stud  <- which(abs(rstudent_val) > 2)
+cat("Atípicos por residuo estandarizado (|rstandard| > 2):", atipicos_std, "\n")
+cat("Atípicos por residuo studentized (|rstudent| > 2):", atipicos_stud, "\n")
+```
+
+
+```{r}
+# Grado de Leverage (Hat values)
+hat_val <- hatvalues(modelo)
+
+# Distancia de Cook
+cooks_val <- cooks.distance(modelo)
+
+# Puntos de corte de referencia
+p <- length(coef(modelo)) - 1
+corte_cook <- 4 / n
+corte_hat <- 2 * (p + 1) / n
+
+# Identificar filas influyentes
+influyentes <- which(cooks_val > corte_cook | hat_val > corte_hat)
+cat("Observaciones influyentes detectadas:", influyentes, "\n")
+```
+
+
+```{r}
+tabla <- data.frame(
+  rstandard = rstandard_val,
+  rstudent = rstudent_val,
+  hat = hat_val,
+  cooks = cooks_val
+)
+
+# Visualizar los primeros registros de la tabla de diagnóstico
+head(tabla)
+```
+
+
+```{r}
+# 1. Variables dependiente contra variables predictoras
+avPlots(modelo)
+
+# 2. Gráfico de residuos estandarizados/studentizados absolutos
+M <- datos
+ggplot(data = M, aes(x = predict(modelo), y = abs(rstudent_val))) +
+  geom_hline(yintercept = 3, color = "grey", linetype = "dashed") +
+  geom_point(aes(color = ifelse(abs(rstudent_val) > 3, 'red', 'black'))) +
+  scale_color_identity() +
+  labs(
+    title = "Distribución de los residuos studentized",
+    x = "predicción modelo",
+    y = "|rstudent|"
+  ) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# 3. Gráfico de influencia
+influencePlot(modelo, id = TRUE)
+```
+
+
+```{r}
+# 1. Filtrar el conjunto de datos excluyendo las filas influyentes
+datos_sin_infl <- datos[-influyentes, ]
+
+# 2. Reajustar el modelo con update()
+modelo_sin_infl <- update(modelo, data = datos_sin_infl)
+
+# 3. Resumen comparativo
+summary(modelo)          # Modelo original
+summary(modelo_sin_infl) # Modelo filtrado
+
+# 4. Comparación de criterios AIC y BIC
+AIC(modelo, modelo_sin_infl)
+BIC(modelo, modelo_sin_infl)
+```
+
+
+## Conclusiones
+
+El modelo de regresión lineal múltiple inicial demostraba que la variable Altura poste no aportaba información estadísticamente significativa. Por lo tanto, ambos modelos AIC y BIC eliminaban esta variable, dejando el modelo óptimo con 3 variables. Para esta actividad, utilizamos el modelo AIC, ya que también minimiza la pérdida de información y está diseñado para maximizar la capacidad predictiva del modelo en nuevas observaciones. El modelo AIC tuvo una variabilidad explicada del $98.96\%$. Con respecto a los datos atípicos, se destacaron 3 observaciones: la observación 9, 11 y 15. Mientras que en los datos influyentes, sorprendentemente se identificaron 4: los mismos datos atípicos, y la inclusión de la observación 17. Por lo tanto, al momento de ajustar el modelo excluyendo estos datos se observó una mejoría considerable: la variabilidad aumentó a $0.9937$ ($99.37\%$), el AIC disminuyó sustancialmente de $31.27$ a $13.01$, reflejando una reducción notable del error de estimación, y se mantuvieron los supuestos de normalidad en residuos, homocedasticidad e independencia. Finalmente, concluimos también que la variable Longitud es el factor de mayor impacto, mientras que las otras dos variables tienen un impacto considerable.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, mayormente al momento de realizar la búsquedad de datos influyentes y de ajustar el modelo sin estos.
+
+(3) Secciones donde se utilizó: Punto 3 y 6 de código mayormente, para el análisis de datos influyentes y ajustes.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+

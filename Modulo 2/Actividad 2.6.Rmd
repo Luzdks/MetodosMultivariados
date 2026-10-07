@@ -1,0 +1,176 @@
+---
+title: "Actividad 2.6 Intervalos en la regresión"
+author: "Lucero Díaz"
+date: "2026-10-05"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(car)
+```
+
+## 1. Modelos de regresión
+
+Para esta actividad, utilizaremos el mismo dataset donde la variable dependiente es la Resistencia. Para el modelo de regresión lineal simple, utilizaremos únicamente la variable independiente Longitud (la más significativa estadísticamente), y para el modelo de regresión lineal múltiple utilizarenos esta misma variable y la variable Altura amarre (segunda variable más significativa estadísticamente).
+
+```{r}
+# Regresión lineal simple
+datos_lineal = read.csv("C:/Users/ludio/Downloads/datosRes-1 (3).csv")
+modelo_lineal = lm(Resistencia ~ Longitud, data = datos_lineal)
+summary(modelo_lineal)
+
+# Regresión lineal múltiple
+datos_multi = read.csv("C:/Users/ludio/Downloads/datosRes-1 (3).csv")
+modelo_multi = lm(Resistencia ~ Longitud + Altura.amarre, data = datos_multi)
+summary(modelo_multi)
+```
+
+
+## 2. Intervalos de la regresión
+
+### Modelo regresión lineal simple
+
+```{r}
+# Intervalos de confianza para los coeficientes de regresión
+ic_lineal <- confint(modelo_lineal, level=0.95)
+cat("Intervalos de confianza para los coeficientes de regresión \n")
+print(ic_lineal)
+
+# Intervalos de confianza para la respuesta media de las primeras 6 observaciones
+ic_lineal_media <- predict(modelo_lineal, newdata = datos_lineal[1:6, ], interval = "confidence", level=0.95)
+cat("\nIntervalos de confianza para la respuesta media de las primeras 6 observaciones \n")
+print(ic_lineal_media)
+
+# Intervalos de predicción para las primeras 6 observaciones
+ip_lineal <- predict(modelo_lineal, newdata = datos_lineal[1:6, ], interval = "prediction", level=0.95)
+cat("\nIntervalos de predicción para las primeras 6 observaciones \n")
+print(ip_lineal)
+```
+
+### Modelo regresión lineal múltiple
+
+```{r}
+# Intervalos de confianza para los coeficientes de regresión
+ic_multi <- confint(modelo_multi, level=0.95)
+cat("Intervalos de confianza para los coeficientes de regresión \n")
+print(ic_multi)
+
+# Intervalos de confianza para la respuesta media de las primeras 6 observaciones
+ic_multi_media <- predict(modelo_multi, newdata = datos_multi[1:6, ], interval = "confidence", level=0.95)
+cat("\nIntervalos de confianza para la respuesta media de las primeras 6 observaciones \n")
+print(ic_multi_media)
+
+# Intervalos de predicción para las primeras 6 observaciones
+ip_multi <- predict(modelo_multi, newdata = datos_multi[1:6, ], interval = "prediction", level=0.95)
+cat("\nIntervalos de predicción para las primeras 6 observaciones \n")
+print(ip_multi)
+```
+
+## 3. Intervalos para una nueva observación
+
+### Modelo regresión lineal simple
+
+```{r}
+xe_simple <- data.frame(Longitud = 12)
+
+ic_nueva_media_simple <- predict(modelo_lineal, newdata = xe_simple, interval = "confidence", level = 0.95)
+cat("Intervalos de confianza para la respuesta media de la nueva observación \n")
+print(ic_nueva_media_simple)
+
+ip_nueva_obs_simple <- predict(modelo_lineal, newdata = xe_simple, interval = "prediction", level = 0.95)
+cat("\nIntervalos de predicción para la nueva observación \n")
+print(ip_nueva_obs_simple)
+```
+
+### Modelo regresión lineal múltiple
+
+```{r}
+xe_multiple <- data.frame(Longitud = 12, Altura.amarre = 1)
+
+ic_nueva_media_mult <- predict(modelo_multi, newdata = xe_multiple, interval = "confidence", level = 0.95)
+cat("Intervalos de confianza para la respuesta media de la nueva observación \n")
+print(ic_nueva_media_mult)
+
+ip_nueva_obs_mult <- predict(modelo_multi, newdata = xe_multiple, interval = "prediction", level = 0.95)
+cat("\nIntervalos de predicción para la nueva observación \n")
+print(ip_nueva_obs_mult)
+```
+
+## 4. Representación gráfica
+
+```{r}
+x_grid <- data.frame(Longitud = seq(min(datos_lineal$Longitud, na.rm = TRUE), 
+                                    max(datos_lineal$Longitud, na.rm = TRUE), 
+                                    length.out = 100))
+
+# Calcular predicciones para la cuadrícula
+banda_conf <- predict(modelo_lineal, newdata = x_grid, interval = "confidence", level = 0.95)
+banda_pred <- predict(modelo_lineal, newdata = x_grid, interval = "prediction", level = 0.95)
+
+# Diagrama de dispersión original
+plot(datos_lineal$Longitud, datos_lineal$Resistencia, pch = 19, col = "black",
+     xlab = "Longitud", ylab = "Resistencia",
+     main = "Modelo de Regresión Simple con IC e IP")
+
+# Línea de regresión estimada
+abline(modelo_lineal, col = "blue", lwd = 2)
+
+# Líneas para el Intervalo de Confianza 
+lines(x_grid$Longitud, banda_conf[, "lwr"], col = "red", lty = 2, lwd = 2)
+lines(x_grid$Longitud, banda_conf[, "upr"], col = "red", lty = 2, lwd = 2)
+
+# Líneas para el Intervalo de Predicción 
+lines(x_grid$Longitud, banda_pred[, "lwr"], col = "darkgreen", lty = 3, lwd = 2)
+lines(x_grid$Longitud, banda_pred[, "upr"], col = "darkgreen", lty = 3, lwd = 2)
+
+# Leyenda gráfica
+legend("topleft", 
+       legend = c("Ajuste Lineal", "I.C.", "I.P."),
+       col = c("blue", "red", "darkgreen"), 
+       lty = c(1, 2, 3), lwd = 2)
+```
+
+
+## 5. Elipse de confianza
+
+```{r}
+confidenceEllipse(modelo_multi, which.coef = c(2, 3), levels = 0.99,
+                  fill = TRUE, fill.alpha = 0.2,
+                  xlab = expression(beta[1]~"(Longitud)"),
+                  ylab = expression(beta[2]~"(Altura amarre)"),
+                  main = "Elipse de confianza al 99% para (β1, β2)")
+points(coef(modelo_multi)[2], coef(modelo_multi)[3], pch = 19, col = "red") 
+abline(h = confint(modelo_multi, level = 0.99)[3, ], lty = 2, col = "blue")  
+abline(v = confint(modelo_multi, level = 0.99)[2, ], lty = 2, col = "blue")
+points(0, 0, pch = 4, col = "black", lwd = 2)                         
+```
+
+## 6. Conclusiones
+
+Ambos modelos describen bien la variable dependiente (Resistencia), pero el modelo múltiple es tiene un mejor rendimiento (R² ajustada de 0.9815 contra 0.9624, y menor error residual), porque la altura de amarre aporta información que la longitud sola no captura. Enfocándonos en el desempeño de los intervalos de confianza y predicción, podemos observar como los coeficientes de cada variable en los dos modelos si caen dentro del rango de los IC de los coeficientes. 
+
+Algo notorio es que, en el modelo lineal simple notamos que el rango de los IC de la variable Longitud es más amplio respecto al rango mostrado en el modelo lineal múltiple, lo que nos indica el nivel de precisión que tiene cada uno de los modelos; de hecho, esto también sucede entre las variables Longitud y Altura amarre dentro del modelo lineal múltiple, donde se observa un rango más amplio de los IC de la variable Altura amarre en comparación a los de la variable Longitud, indicando que hay una mayor precisión esta última variable. Notamos también que los intervalos de predicción son más anchos que los de confianza, puesto que incluyen la variabilidad de una pieza individual, mientras que lo intervalos de confianza miden el rango de la posible respuesta media de los valores. 
+
+En el inciso 3, donde se añade la nueva observación, se observa como en ambos modelos quedó dentro de los intervalos de predicción, aunque el modelo múltiple la predijo con menos error. Pasando a las gráficas creadas, en la del modelo de regresión lineal simple se ve claramente la línea de regresión así como también el poco ancho que tiene el intervalo de confianza de este modelo, muy apenas diferenciándose de regresión lineal múltiple. Por otro lado, se observa como el intervalo de predicción es mucho más ancho, y abarca casi todos los datos por completo. Finalmente, en la representación gráfica del modelo lineal múltiple, a elipse al 99 % no contiene al origen (0,0), así que confirmamos que ambas variables (Longitud y Altura amarre) son conjuntamente significativas. Además, podemos observar que su correlación es negativa, por la posición que tienen las diagonales de su elipse, la cual se encuentra en su mayoría delimitada por los intervalos de confianza de los coeficientes de cada variable.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Claude
+
+(2) Uso realizado: Ayuda en el código desde el inciso 4 en adelante, es decir, para realizar las gráficas donde se muestran los intervalos de confianza y predicción de ambos modelos, así como la regresión lineal simple y el elipse de confianza para el modelo lineal múltiple. También me ayudó en la comprensión e interpretación de los resultados obtenidos.
+
+(3) Secciones donde se utilizó: Incisos 4, 5, 6, con las visualizaciones de las gráficas en el código y guía para interpretar los resultados finales.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+

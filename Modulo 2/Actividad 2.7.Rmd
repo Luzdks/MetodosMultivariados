@@ -1,0 +1,64 @@
+---
+title: "Actividad 2.6 Análisis discriminante"
+author: "Lucero Díaz"
+date: "2026-10-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+datos <- read.csv("C:/Users/ludio/Downloads/kc_house_data-1.csv")
+
+datos$yr_built_cat <- cut(
+  datos$yr_built,
+  breaks = c(1899, 1960, 1990, 2016),
+  labels = c("Antigua (<1960)", "Intermedia (1960-1990)", "Nueva (>1990)")
+)
+
+# Convertir a factor
+datos$yr_built_cat <- as.factor(datos$yr_built_cat)
+
+# Crear un vector con los nombres de todas las variables numéricas que usaremos
+vars_independientes <- c(
+  "price", "bedrooms", "bathrooms", "sqft_living", "sqft_lot", 
+  "floors", "sqft_above", "sqft_basement", "sqft_living15", "sqft_lot15"
+)
+```
+
+```{r}
+set.seed(123) # Semilla para mantener los mismos resultados
+muestra_indices <- sample(1:nrow(datos), 300)
+datos_muestra <- datos[muestra_indices, ]
+```
+
+```{r}
+# 3. Generar la matriz completa de gráficos
+pairs(
+  datos_muestra[, vars_independientes],
+  col = datos_muestra$yr_built_cat,
+  pch = 19,
+  main = "Matriz de Dispersión General por Época de Construcción"
+)
+```
+
+```{r}
+# Aplicar tapply a cada variable numérica independiente por grupo
+medias_tabla <- sapply(vars_independientes, function(var) {
+  tapply(datos_muestra[[var]], datos_muestra$yr_built_cat, mean, na.rm = TRUE)
+})
+
+# Mostrar la tabla transpuesta de medias por grupo
+print(t(medias_tabla))
+```
+
+
+```{r}
+# Distribución de datos / Probabilidades a priori
+prob_apriori <- prop.table(table(datos_muestra$yr_built_cat))
+print(prob_apriori)
+```
+
+
