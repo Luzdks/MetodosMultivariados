@@ -9,27 +9,337 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 ## PARTE I
 
-### Realiza el análisis de los valores y vectores propios con la matriz de covarianzas y con la de correlación. Analiza la varianza explicada por cada componente en cada caso e interpreta dentro del contexto del problema.
+#### Realiza el análisis de los valores y vectores propios con la matriz de covarianzas y con la de correlación. Analiza la varianza explicada por cada componente en cada caso e interpreta dentro del contexto del problema.
 
 ```{r}
-X <- read.csv("C:/Users/ludio/Downloads/paises_mundo.csv")
+datos <- read.csv("C:/Users/ludio/Downloads/paises_mundo.csv")
+nombres_vars <- colnames(datos)
 
-S = cov(X)
-R = cor(X)
+S = cov(datos)
+R = cor(datos)
 
 eigen_S = eigen(S)
-valores_propios_S = eigen_S$values
-vectores_propios_S = eigen_S$vectors
+var_tot_S <- sum(diag(S))
+var_tot_Seigen <- sum(eigen_S$values)
+cat("La suma de la de la diagonal de S (varianzas): ", var_tot_S, ", es la misma que la suma de los valores propios de S:", var_tot_Seigen, "\n")
+
+prop_var_S <- eigen_S$values / var_tot_S
+cum_var_S <- cumsum(prop_var_S)
 
 eigen_R = eigen(R)
-valores_propios_R = eigen_R$values
-vectores_propios_R = eigen_R$vectors
+var_tot_R <- sum(diag(R))
+var_tot_Reigen <- sum(eigen_R$values)
+cat("La suma de la de la diagonal de R (varianzas): ", var_tot_R, ", es la misma que la suma de los valores propios de R:", var_tot_Reigen, "\n\n")
 
+prop_var_R <- eigen_R$values / var_tot_R
+cum_var_R <- cumsum(prop_var_R)
 
+res_S <- data.frame(Eigenval = eigen_S$values, Prop = prop_var_S, Acum = cum_var_S)
+res_R <- data.frame(Eigenval = eigen_R$values, Prop = prop_var_R, Acum = cum_var_R)
+
+print("Resultados matriz S")
+print(head(res_S, 11))
+cat("\n")
+
+print("Resultados matriz R")
+print(head(res_R, 11))
 
 ```
+
+#### Según los resultados anteriores, ¿qué componentes son los más importantes?
+
+En la matriz S, los componentes más importantes son el CP1 y el CP2, puesto que juntos ya explican el 99\% de la varianza de los datos; los demás componentes son redundantes. En el caso de la matriz R, los componentes más importantes son los primeros 3, con un sólido 66\% de varianza explicada de los datos, puesto que son los que capturan más varianza de manera considerable; del cuarto componente en adelante se va capturan menos del 10\% de varianza en cada uno.
+
+```{r}
+v1_S <- eigen_S$vectors[, 1]
+v2_S <- eigen_S$vectors[, 2]
+
+eq_CP1_S <- paste("CP1_S =", paste(round(v1_S, 6), nombres_vars, sep = "*", collapse = " + "))
+eq_CP2_S <- paste("CP2_S =", paste(round(v2_S, 6), nombres_vars, sep = "*", collapse = " + "))
+
+cat("Ecuación CP1 (Covarianza):\n", eq_CP1_S, "\n\n")
+cat("Ecuación CP2 (Covarianza):\n", eq_CP2_S, "\n\n")
+
+
+v1_R <- eigen_R$vectors[, 1]
+v2_R <- eigen_R$vectors[, 2]
+
+eq_CP1_R <- paste("CP1_R =", paste(round(v1_R, 6), paste0("Z_", nombres_vars), sep = "*", collapse = " + "))
+eq_CP2_R <- paste("CP2_R =", paste(round(v2_R, 6), paste0("Z_", nombres_vars), sep = "*", collapse = " + "))
+
+cat("Ecuación CP1 (Correlación):\n", eq_CP1_R, "\n\n")
+cat("Ecuación CP2 (Correlación):\n", eq_CP2_R, "\n\n")
+```
+ 
+#### ¿Qué variables son las que más contribuyen a la primera y segunda componentes principales? (observe los coeficientes en valor absoluto de las combinaciones lineales). Justifique su respuesta.
+
+Por lo observado en las combinaciones lineales que describen a los componentes, las variables con mayor contribución en los componentes de S son: $X_4$ (PNB95, con coeficiente $\vert{}0.888\vert{}$) y $X_5$ (ProdElec, con $\vert{}0.460\vert{}$) dominan CP1. En CP2 las mismas variables invierten magnitudes ($\vert{}0.888\vert{}$ para ProdElec y $\vert{}0.460\vert{}$ para PNB95). Estas son las que más contribuyen por tamaños relativos.
+
+En el caso de la matriz R, también tomando en cuenta tamaños relativos, las variables que más contribuyen son:
+
+* Variables de mayor contribución en CP1:$X_6$ (LinTelf): $\vert{}-0.446\vert{}$$X_{10}$ (ConsEner): $\vert{}-0.415\vert{}$$X_2$ (MortInf): $\vert{}+0.392\vert{}$$X_{11}$ (EmisCO2): $\vert{}-0.375\vert{}$$X_1$ (CrecPobl): $\vert{}+0.314\vert{}$
+
+* Variables de mayor contribución en CP2:$X_3$ (PorcMujeres): $\vert{}+0.583\vert{}$$X_8$ (PropBosq): $\vert{}+0.457\vert{}$$X_1$ (CrecPobl): $\vert{}-0.348\vert{}$$X_7$ (ConsAgua): $\vert{}-0.321\vert{}$
+
+## PARTE II
+
+```{r graficos-matriz-S, fig.width=12, fig.height=7, dpi=300, fig.align='center', out.width='100%'}
+library(stats)
+ 
+# PCA con Matriz de Covarianzas
+cpS <- princomp(datos, cor = FALSE)
+cpaS <- as.matrix(scale(datos, center = TRUE, scale = FALSE)) %*% cpS$loadings
+
+# Dividir la ventana en 1 fila y 2 columnas para mostrar los gráficos lado a lado
+par(mfrow = c(1, 2))
+
+# Gráfico 1: Puntuaciones (Scores)
+plot(cpaS[, 1:2], type = "n",
+     xlab = "CP1 (90.35% Varianza)", 
+     ylab = "CP2 (9.65% Varianza)",
+     main = "Scores CP1 vs CP2 - Matriz S")
+text(cpaS[, 1], cpaS[, 2], labels = 1:nrow(cpaS), col = "blue", cex = 0.7)
+abline(h = 0, v = 0, lty = 2, col = "gray")
+
+# Gráfico 2: Biplot
+biplot(cpS, 
+       cex = c(0.6, 0.8),          # [1] Tamaño texto observaciones, [2] Tamaño texto variables
+       col = c("black", "red"), 
+       main = "Biplot - Matriz S")
+
+# Restaurar panel gráfico
+par(mfrow = c(1, 1))
+```
+
+La proyección está totalmente dominada por dos variables: PNB95 y ProdElec. En el Biplot de $S$, los vectores de las demás 9 variables (MortInf, CrecPobl, LinTelf, etc.) son tan pequeños que prácticamente desaparecen o se ven como puntos en el origen. No es posible apreciar la correlación real entre las variables socioeconómicas.
+
+* Eje X ($CP_1$): Los países ubicados muy a la derecha (e.g., observaciones 37, 75, 25) son únicamente aquellos con valores sumamente altos en el PNB95.
+
+* Eje Y ($CP_2$): Separa los países según si su volumen proviene más de la producción eléctrica (ProdElec) o del PNB.
+
+* Efecto Apilamiento: La mayoría de los países quedan "amontonados" o colapsados cerca del origen $(0,0)$, impidiendo analizar diferencias entre países de desarrollo medio o bajo.
+
+Detecta como datos atípicos extremos únicamente a potencias económicas masivas (observaciones 37, 75, 25, 16, 13), no porque tengan comportamientos atípicos en sus indicadores sociales, sino simplemente por la magnitud de sus unidades.
+
+
+```{r graficos-matriz-R, fig.width=12, fig.height=7, dpi=300, fig.align='center', out.width='100%'}
+# PCA con Matriz de Correlación
+cpR <- princomp(datos, cor = TRUE)
+cpaR <- cpR$scores
+
+par(mfrow = c(1, 2))
+
+# Gráfico 1: Puntuaciones (Scores)
+plot(cpaR[, 1:2], type = "n",
+     xlab = "CP1 (36.64% Varianza)", 
+     ylab = "CP2 (17.55% Varianza)",
+     main = "Scores CP1 vs CP2 - Matriz R")
+text(cpaR[, 1], cpaR[, 2], labels = 1:nrow(cpaR), col = "darkblue", cex = 0.7)
+abline(h = 0, v = 0, lty = 2, col = "gray")
+
+# Gráfico 2: Biplot
+biplot(cpR, 
+       cex = c(0.6, 0.8), 
+       col = c("black", "blue"), 
+       main = "Biplot - Matriz R")
+
+par(mfrow = c(1, 1))
+```
+
+Al estar estandarizadas (media 0, varianza 1), todas las variables contribuyen al espacio. Se distingue claramente cómo variables como LinTelf, ConsEner y PNB95 forman un bloque opuesto a MortInf y CrecPobl. Las puntuaciones se distribuyen de manera continua entre (-5, 3) en $CP_1$, y entre (-6, 2) en $CP_2$, permitiendo ordenar a los países a lo largo de un espectro socioeconómico real. Aquí sí se observan datos atípicos: 
+
+* Observaciones con niveles atípicos de desarrollo o infraestructura (observación 16 o 37 en el extremo izquierdo del eje negativo).
+
+* Observaciones con combinaciones atípicas de estructura poblacional o ambiental (observación 31 o 48 en los extremos del eje vertical $CP_2$).
+
+## Parte III
+
+```{r parte3-factominer-factoextra, fig.width=14, fig.height=10, dpi=300, fig.align='center', out.width='100%', message=FALSE, warning=FALSE}
+library(FactoMineR)
+library(factoextra)
+library(ggplot2)
+ 
+cpS <- PCA(datos, scale.unit = FALSE, graph = FALSE)
+
+# Gráfico 1.1: Individuos (Países)
+g1_ind_S <- fviz_pca_ind(cpS, col.ind = "blue", addEllipses = TRUE, repel = FALSE) +
+            labs(title = "1. fviz_pca_ind - Matriz de Covarianzas (S)")
+
+# Gráfico 1.2: Variables
+g1_var_S <- fviz_pca_var(cpS, col.var = "red", addEllipses = TRUE, repel = TRUE) +
+            labs(title = "2. fviz_pca_var - Matriz de Covarianzas (S)")
+
+# Gráfico 1.3: Sedimentación (Scree Plot)
+g1_scree_S <- fviz_screeplot(cpS, addlabels = TRUE) +
+              labs(title = "3. fviz_screeplot - Matriz de Covarianzas (S)")
+
+# Gráfico 1.4: Contribución de Variables a la Dimensión 1
+g1_contrib_S <- fviz_contrib(cpS, choice = "var", axes = 1) +
+                labs(title = "4. fviz_contrib - Matriz de Covarianzas (S) - Dim 1")
+
+
+cpR <- PCA(datos, scale.unit = TRUE, graph = FALSE)
+
+# Gráfico 2.1: Individuos (Países)
+g2_ind_R <- fviz_pca_ind(cpR, col.ind = "blue", addEllipses = TRUE, repel = FALSE) +
+            labs(title = "1. fviz_pca_ind - Matriz de Correlaciones (R)")
+
+# Gráfico 2.2: Círculo de Correlaciones de Variables
+g2_var_R <- fviz_pca_var(cpR, col.var = "red", addEllipses = TRUE, repel = TRUE) +
+            labs(title = "2. fviz_pca_var - Matriz de Correlaciones (R)")
+
+# Gráfico 2.3: Sedimentación (Scree Plot)
+g2_scree_R <- fviz_screeplot(cpR, addlabels = TRUE) +
+              labs(title = "3. fviz_screeplot - Matriz de Correlaciones (R)")
+
+# Gráfico 2.4: Contribución de Variables a la Dimensión 1
+g2_contrib_R <- fviz_contrib(cpR, choice = "var", axes = 1) +
+                labs(title = "4. fviz_contrib - Matriz de Correlaciones (R) - Dim 1")
+
+# Desplegar gráficos
+print(g1_ind_S); print(g1_var_S); print(g1_scree_S); print(g1_contrib_S)
+print(g2_ind_R); print(g2_var_R); print(g2_scree_R); print(g2_contrib_R)
+```
+
+Se interpretará cada uno de los 4 diferentes tipos de gráficos mostrados arriba:
+
+* **fviz_pca_ind() – Gráfico de individuos**
+
+Este mapea a los 96 países en el plano principal (CP1 vs. CP2) e incluye una elipse de confianza
+
+**Con Matriz $S$**: La gran mayoría de los países quedan colapsados en un grupo denso alrededor del punto $(0,0)$. Solo algunas potencas (37, 75, 25, etc.) jalan la proyección. La elipse de confianza se alarga enormemente para intentar cubrir a esos valores atípicos.
+
+**Con Matriz $R$**: Al estandarizar las unidades, los 96 países se distribuyen de forma homogénea dentro y alrededor de la elipse de confianza. El eje horizontal (CP1) permite graduar a los países desde un extremo con alta infraestructura y consumo energético hasta un extremo de alta mortalidad infantil y rápido crecimiento poblacional.
+
+
+* **fviz_pca_var() – Gráfico de Variables / Círculo de Correlaciones**
+
+Muestra la dirección y magnitud de cada variable en términos de los dos componentes principales.
+
+**Con Matriz $S$**: Los vectores de las variables PNB95 y ProdElec se extienden decenas de miles de unidades en el plano. En cambio, los vectores de las otras 9 variables (MortInf, ConsEner, CrecPobl, etc.) tienen longitudes casi nulas en esta escala, haciendo imposible analizar cómo se relacionan entre sí.
+
+**Con Matriz $R$ (Círculo Unitario)**: Todas las variables se grafican en el círculo de radio $r=1$. Se observa una fuerte correlación negativa entre el grupo formado por LinTelf, ConsEner, EmisCO2 y PNB95 (flechas apuntando a la derecha) y el grupo de MortInf y CrecPobl (flechas apuntando a la izquierda). PorcMujeres y PropBosq apuntan hacia el eje vertical positivo (CP2), indicando independencia respecto al desarrollo económico básico.
+
+
+* **fviz_screeplot() – Gráfico de Sedimentación (Scree Plot)**
+
+Representa el porcentaje de varianza explicada por cada componente.   
+
+**Con Matriz $S$**: La barra del CP1 absorbe el $90.3\%$ de la varianza total y la del CP2 el $9.6\%$. Del CP3 a la CP11 la varianza es prácticamente 0.
+
+**Con Matriz $R$**: Muestra un descenso suave y progresivo: CP1: $36.6\%$, CP2: $17.5\%$, CP3: $12.5\%$, CP4: $7.9\%$. El gráfico muestra claramente el "codo" después del CP4, sugiriendo retener 4 componentes que juntos explican el $74.5\%$ de la variabilidad total.
+
+
+* **fviz_contrib() – Contribución de Variables a la CP1**
+
+Muestra el porcentaje de participación de cada variable en la construcción deL primer componente. La línea roja punteada marca la contribución media esperada ($100\% / 11 \approx 9.09\%$)
+
+**Con Matriz $S$**: La variable PNB95 aporta el $78.8\%$ del CP1 y ProdElec el $21.1\%$. Ninguna de las otras 9 variables alcanza siquiera el $0.1\%$ de contribución.
+
+**Con Matriz $R$**: Seis variables superan el umbral teórico de significancia ($9.09\%$):
+
+* LinTelf ($19.9\%$)
+
+* ConsEner ($17.2\%$)
+
+* MortInf ($15.4\%$)
+
+* EmisCO2 ($14.0\%$)
+
+* CrecPobl ($9.9\%$)
+
+* PNB95 ($8.7\%$, muy cerca del umbral)
+
+
+## Parte IV
+
+#### Finalmente: Concluye sobre el análisis de componentes principales realizado e interprete los resultados.
+
+#### Compare los resultados obtenidos con la matriz de varianza-covarianza y con la correlación . ¿Qué concluye? ¿Cuál de los dos procedimientos aporta componentes con de mayor interés?
+
+En la matriz de varianza-covarianza (S) solo se obtiene dos componentes principales relevantes, puesto que ya con estos se obtiene el 99\% de la varianza explicada de los datos. Por otro lado, al estandarizar las variables (media 0, varianza 1), se elimina el sesgo de las unidades de medida, por lo que la matriz de correlación (R) nos ofrece componentes de mayor interés, en los cuales se distribuye de manera más equilibrada la varianza total de los datos. Esto nos permite analizar el comportamiento multidimensional real de los países.
+
+#### Indique cuál de los dos análisis (a partir de la matriz de varianza y covarianza o de correlación) resulta mejor para los datos indicadores económicos y sociales del 96 países en el mundo. Comparar los resultados y argumentar cuál es mejor según los resultados obtenidos.
+
+El mejor para los indicadores económicos y sociales es el de la matriz de correlación, puesto que las 11 variables poseen direcciones y magnitudes distintas y totalmente comparables (como lo observamos en el gráfico de variables de la parte 3). Por el contrario, en la matriz de varianzas-covarianzas las variables con números grandes terminan opacando a otros indicadores que pueden ser relevantes.
+
+#### ¿Qué variables son las que más contribuyen a la primera y segunda componentes principales del método seleccionado? (observa los coeficientes en valor absoluto de las combinaciones lineales, auxíliate también de los gráficos)
+
+Basándonos en el gráfico de contribución de variables, aquellas que aportan más en cada componente son:
+
+En la Primera Componente Principal ($CP_1$):
+
+* LinTelf (Líneas telefónicas por 1000 hab.): $19.90\%$ de contribución.
+
+* ConsEner (Consumo de energía per cápita): $17.22\%$ de contribución.
+
+* MortInf (Tasa de mortalidad infantil): $15.40\%$ de contribución.
+
+* EmisCO2 (Emisión de CO2 per cápita): $14.03\%$ de contribución.
+
+* CrecPobl (Tasa de crecimiento poblacional): $9.87\%$ de contribución.
+
+Las primeras 5 variables superan el umbral de contribución promedio esperado ($9.09\%$).
+
+En la Segunda Componente Principal ($CP_2$):
+
+* PorcMujeres (Porcentaje de mujeres en la población activa): $32.81\%$ de contribución.
+
+* PropBosq (Proporción de superficie cubierta por bosques): $20.93\%$ de contribución.
+
+* CrecPobl (Tasa de crecimiento poblacional): $12.14\%$ de contribución.
+
+* ConsAgua (Consumo de agua per cápita): $10.29\%$ de contribución.
+
+
+#### Escriba las combinaciones finales que se recomiendan para hacer el análisis de componentes principales.
+
+Las combinaciones recomendadas para proyectar y calcular los índices de cada país se basan en las variables estandarizadas ($Z_{X_i} = \frac{X_i - \bar{X}_i}{s_i}$):
+
+$$\mathbf{CP_1^{(R)}} = -0.4461 \, Z_{\text{LinTelf}} - 0.4150 \, Z_{\text{ConsEner}} - 0.3745 \, Z_{\text{EmisCO2}} - 0.2954 \, Z_{\text{PNB95}} - 0.2590 \, Z_{\text{ProdElec}} + 0.3924 \, Z_{\text{MortInf}} + 0.3141 \, Z_{\text{CrecPobl}} + 0.2437 \, Z_{\text{PropDefor}} - 0.1165 \, Z_{\text{PorcMujeres}} - 0.0924 \, Z_{\text{ConsAgua}} - 0.0057 \, Z_{\text{PropBosq}}$$
+
+$$\mathbf{CP_2^{(R)}} = +0.5828 \, Z_{\text{PorcMujeres}} + 0.4574 \, Z_{\text{PropBosq}} - 0.3484 \, Z_{\text{CrecPobl}} - 0.3206 \, Z_{\text{ConsAgua}} - 0.2917 \, Z_{\text{EmisCO2}} + 0.1769 \, Z_{\text{PNB95}} + 0.1736 \, Z_{\text{ProdElec}} + 0.1541 \, Z_{\text{PropDefor}} + 0.0414 \, Z_{\text{MortInf}} + 0.0272 \, Z_{\text{LinTelf}}$$
+
+#### Interpreta los resultados en término de agrupación de variables (puede ayudar "índice de riqueza", "índice de ruralidad", etc)
+
+Los componentes principales obtenidos permiten nombrar dos índices socioeconómicos para clasificar a los 96 países:
+
+$CP_1$: "Índice de Desarrollo Infraestructural e Industrial vs. Vulnerabilidad Social"
+
+* Puntuaciones muy negativas: Identifican a países altamente desarrollados, con gran infraestructura de telecomunicaciones (LinTelf), elevado consumo de energía (ConsEner), alto PNB y bajas tasas de mortalidad infantil.
+
+* Puntuaciones muy positivas: Identifican a países en desarrollo o con rezago social, caracterizados por alta mortalidad infantil (MortInf), elevado crecimiento poblacional (CrecPobl) y deforestación (PropDefor).
+
+
+$CP_2$: "Índice de Inclusión Laboral Femenina y Sostenibilidad Forestal"
+
+* Puntuaciones positivas: Indican una mayor participación de las mujeres en la fuerza laboral activa (PorcMujeres) y una mayor conservación de recursos forestales nativos (PropBosq).
+
+* Puntuaciones negativas: Reflejan mayor presión sobre los recursos hídricos/energéticos y alta tasa de natalidad.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de todo el trabajo, principalmente desde el punto 2 en adelante. También ayudó como guía en la interpretación de cada sección y en ayuda del formato en markdown.
+
+(3) Secciones donde se utilizó: Parte de código en todas las secciones, así como también guiando interpretaciones y ayudando a mantener el formato de markdown.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+
+
+
+
+
 
 
 

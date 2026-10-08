@@ -1,0 +1,165 @@
+---
+title: 'Actividad 2.7 Análisis de varianza: Resistencia'
+author: "Lucero Díaz Ortega A01199346"
+date: "2026-10-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Análisis exploratorio. 
+
+Calcula la media para la resistencia por tratamiento, es decir, por altura del poste (se cambió porque no hay ninguna variable de concentración de madera)
+
+```{r}
+# Filtrar niveles 1, 2 y 3 de Altura poste
+datos <- read.csv("C:/Users/ludio/Downloads/datosRes-1.csv")
+datos_sub <- subset(datos, Altura.poste %in% c(1, 2, 3))
+datos_sub$Tratamiento <- as.factor(datos_sub$Altura.poste)
+
+# Boxplot
+boxplot(Resistencia ~ Tratamiento, data = datos_sub,
+        main = "Resistencia por Nivel de Altura de Poste",
+        xlab = "Tratamiento (Altura de Poste)",
+        ylab = "Resistencia",
+        col = c("skyblue", "lightgreen", "coral"))
+```
+
+La resistencia promedio y todos los valores en general aumentan cada vez que aumenta el nivel de Altura poste (de 16.77 en el nivel 1 a 44.91 en el nivel 3). La variabilidad es mayor en el nivel 2, donde incluso se observa un dato atípico extremadamente positivo. Existe un incremento claro en la media de la resistencia conforme sube la altura del poste, pero se requiere el ANOVA para probar si las diferencias son estadísticamente significativas.
+
+
+## 2. Hipótesis estadística
+
+* **Hipótesis Nula ($H_0$)**: La resistencia promedio es igual en los tres niveles de altura de poste.
+
+$$H_0: \mu_1 = \mu_2 = \mu_3$$
+
+* **Hipótesis Alternativa ($H_1$)**: Al menos uno de los niveles de altura de poste produce una resistencia promedio diferente.
+
+$$H_1: \mu_i \neq \mu_j \quad \text{para algún } i \neq j$$
+
+Nivel de significancia: $\alpha = 0.05$.
+
+
+## 3. ANOVA: Suma de Cuadrados Medios
+
+Realiza el ANOVA (calculando el estadístico de prueba mediante las sumas de cuadrados medios (intergrupos/entre grupos) y (intragrupos).  
+
+```{r}
+# Definición de variables
+Y <- datos_sub$Resistencia
+grupo <- as.factor(datos_sub$Altura.poste)
+
+# Parámetros del experimento
+N <- length(Y)              
+k <- length(unique(grupo))      
+Y_barra_global <- mean(Y)           
+
+# Cálculos de medias y tamaños por grupo
+medias_grupo <- tapply(Y, grupo, mean)
+n_grupo <- tapply(Y, grupo, length)
+
+# Sumas de Cuadrados (SC)
+# SC Tratamientos (Intergrupos)
+SC_Trat <- sum(n_grupo * (medias_grupo - Y_barra_global)^2)
+
+# SC Total
+SC_Total <- sum((Y - Y_barra_global)^2)
+
+# SC Error (Intragrupos)
+SC_Error <- SC_Total - SC_Trat
+
+# Grados de libertad (gl)
+gl_Trat <- k - 1 # gl_Trat = 2
+gl_Error <- N - k # gl_Error = 21
+gl_Total <- N - 1 # gl_Total = 23
+
+# Cuadrados Medios (CM)
+CM_Trat <- SC_Trat / gl_Trat
+CM_Error <- SC_Error / gl_Error
+
+# Estadístico de prueba F0 y Valor p
+F_0 <- CM_Trat / CM_Error
+p_valor <- pf(F_0, df1 = gl_Trat, df2 = gl_Error, lower.tail = FALSE)
+
+# Resultados
+cat("==================================================\n")
+cat("RESULTADOS DEL CÁLCULO DIRECTO EN R\n")
+cat("==================================================\n")
+cat("Suma de Cuadrados Tratamientos (Inter):", round(SC_Trat, 4), "\n")
+cat("Suma de Cuadrados Error (Intra):       ", round(SC_Error, 4), "\n")
+cat("Suma de Cuadrados Total:               ", round(SC_Total, 4), "\n\n")
+cat("Cuadrado Medio Tratamientos (CM_Trat): ", round(CM_Trat, 4), "\n")
+cat("Cuadrado Medio Error (CM_Error):        ", round(CM_Error, 4), "\n\n")
+cat("Estadístico de prueba F0:              ", round(F_0, 4), "\n")
+cat("Valor p:                               ", format.pval(p_valor, digits = 6), "\n")
+cat("==================================================\n")
+```
+
+
+## 4. ANOVA en R
+
+Realiza el ANOVA para un factor de tres niveles (o tratamientos). Proporciona la conclusión para la prueba de hipótesis planteada. 
+
+```{r}
+modelo <- aov(Resistencia ~ Tratamiento, data = datos_sub)
+summary(modelo)
+```
+
+En ambos ANOVAS se observa un p-value menor a 0.05, lo que implica que se rechaza la hipótesis nula H0, indicando que no todos los promedios de Resistencia son iguales en los 3 niveles de Altura poste, por lo que deducimos que existe evidencia estadística altamente significativa para concluir que la altura del poste influye sobre la resistencia del ensamble.
+
+
+## 5. Diferencias por pares
+
+En caso de haber diferencia en las medias de los tratamientos identifica los grupos cuyas medias son significativamente diferente
+
+```{r}
+tukey_res <- TukeyHSD(modelo)
+print(tukey_res)
+
+plot(tukey_res, conf.level = 0.95, las = 1)
+```
+
+Todos los niveles son significativamente diferentes entre sí. La resistencia crece progresivamente al pasar del nivel 1 al 2, y del 2 al 3, mostrando como entre el nivel 1 y el nivel 3 existe la mayor diferencia entre pares.
+
+
+## 6. Validación de supuestos
+
+Analiza la validez del modelo, comprobando los supuestos:
+
+```{r}
+# Normalidad (N = 24 < 50: Shapiro-Wilk)
+shapiro.test(residuals(modelo))
+
+# Homocedasticidad (Test de Bartlett)
+bartlett.test(Resistencia ~ Tratamiento, data = datos_sub)
+```
+
+Como tenemos menos de 50 datos, utilizamos la prueba de normalidad de Shapiro-Wilk. Como el p-value es menor al 0.05 de significancia, eso demuestra una desviación a la normalidad buscada. Sin embargo, el ANOVA es bastante robusto ante esta leve discrepancia con tamaños muestrales equilibrados.
+
+Por otro lado, el p-value del test de Bartlett confirma homocedasticidad, es decir, se cumple con el supuesto de varianzas iguales.
+
+
+## 7. Conclusiones
+
+El análisis estadístico sobre la base de datos demuestra que la variable Altura poste tiene un efecto directo y estadísticamente significativo sobre la Resistencia ($F = 16.244, p < 0.001$). Esto demuestra también que en cada nivel la resistencia promedio cambia, de manera que esta misma incrementa mientras aumente el nivel de Altura poste. Si el objetivo es maximizar la resistencia del componente, se recomienda ajustar el proceso al nivel 3, el cual alcanza la resistencia promedio más alta ($\bar{Y}_3 = 44.91$).
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, específicamente en la sección 3 para saber cómo realizar el ANOVA desde cero. También proporcionó una guía para la interpretación de resultados y en algunos detalles del formato en markdown
+
+(3) Secciones donde se utilizó: En el código inicial de la primer sección (para definir los 3 niveles) y en la sección 3 para realizar los cálculos del ANOVA. Además, a lo largo del trabajo ayudó guiando en algunas interpretaciones y en el formato de markdown (listas, bullets, etc).
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+
+

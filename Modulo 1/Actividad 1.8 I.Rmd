@@ -1,0 +1,61 @@
+---
+title: "Actividad 1.8"
+author: "Lucero Díaz"
+date: "2026-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(psych)
+library(ggcorrplot)
+library(performance)
+library(GPArotation)
+```
+
+#### 1. Obtener la matriz de correlaciones y la matriz de valores p de significancia por pares. Interpreten los resultado en equipo. 
+
+```{r}
+datos <- read.csv("C:/Users/ludio/Downloads/datoslago.csv")
+
+M <- datos[, c("Tamano", "Temperatura", "Proteinas", "Oxigeno", "LnProteinas", "LnTamano")]
+
+Corr <- corr.test(M, adjust = "none")
+
+cat("Matriz de correlación (R) \n")
+print(round(Corr$r, 4))
+
+cat("\nMatriz de los p-values (P) \n")
+print(round(Corr$p, 4))
+
+corr_parcial <- corr.p(Corr$r, n = nrow(M), adjust = "none")
+
+
+```
+
+
+#### 2. Hacer una gráfica de la matriz de correlaciones. Hacer un comentario entre todos los del equipo de la gráfica. Interpretar también correlación parcial de los datos.
+
+```{r}
+matriz_corr <- ggcorrplot(Corr$r,type="lower")
+print(matriz_corr)
+print(corr_parcial)
+
+```
+
+```{r}
+check_sphericity_bartlett(M)
+
+b <- check_sphericity_bartlett(M)
+cat("\n--- RESULTADOS BARTLETT ---\n")
+cat("Chi-cuadrado:", b$chisq, "\n")
+cat("Grados de libertad (dof):", b$dof, "\n")
+cat("Valor p:", b$p, "\n")
+```
+
+
+
+
