@@ -14,12 +14,13 @@ library(psych)
 library(ggcorrplot)
 library(performance)
 library(GPArotation)
+library(ppcor)
 ```
 
 #### 1. Obtener la matriz de correlaciones y la matriz de valores p de significancia por pares. Interpreten los resultado en equipo. 
 
 ```{r}
-datos <- read.csv("C:/Users/ludio/Downloads/datoslago.csv")
+datos <- read.csv("C:/Users/ldiazo/Downloads/datoslago.csv")
 
 M <- datos[, c("Tamano", "Temperatura", "Proteinas", "Oxigeno", "LnProteinas", "LnTamano")]
 
@@ -30,21 +31,37 @@ print(round(Corr$r, 4))
 
 cat("\nMatriz de los p-values (P) \n")
 print(round(Corr$p, 4))
-
-corr_parcial <- corr.p(Corr$r, n = nrow(M), adjust = "none")
-
-
 ```
+
+Algunos de los insights más interesantes que sacamos de estas matrices son:
+
+* Se observa un bloque fuertemente intercorrelacionado compuesto por Tamano, LnTamano, Proteinas y LnProteinas (donde la correlación mínima entre pares es $r > 0.57$ y sus p-values están todos por debajo de $p < 0.0001$). Estas variables están asociadas con la dimensión de productividad y escala limnológica.
+
+* La variable Oxigeno presenta correlaciones negativas significativas con las variables de tamaño y proteínas ($r \approx -0.30 \text{ a } -0.38$) y positiva con Temperatura ($r = 0.3384, p = 0.0011$), reflejando el comportamiento del hábitat fisicoquímico.   
+
+* La única relación no estadísticamente significativa que muestra la matriz de p-values es la relación entre Temperatura y LnProteinas ($p = 0.4600$), lo cual también puede deducir considerado que su correlación es cercana a 0.
 
 
 #### 2. Hacer una gráfica de la matriz de correlaciones. Hacer un comentario entre todos los del equipo de la gráfica. Interpretar también correlación parcial de los datos.
 
 ```{r}
 matriz_corr <- ggcorrplot(Corr$r,type="lower")
+corr_parcial <- corr.p(Corr$r, n = nrow(M), adjust = "none")
 print(matriz_corr)
 print(corr_parcial)
-
 ```
+
+```{r}
+resultado <- pcor(M, method = "pearson")
+resultado$estimate  # Matriz de coeficientes de correlación parcial
+resultado$p.value   # Matriz de valores p asociados
+```
+
+
+En la matriz se pueden observar dos núcleos de covarianza: un grupo de bloques con colores cálidos, representando alta correlación positiva, formado por Tamano, LnTamano, Proteinas y LnProteinas; y otro grupo de bloques con tonos fríos/neutros, relacionados con el resto de variables (Oxigeno, Temperatura).
+
+Al calcular la correlación parcial, se observa una disminución drástica entre la mayoría de las parejas. Esto se debe a la redundancia de información (colinealidad) entre las variables directas y sus transformaciones logarítmicas. Tamano y LnTamano se explican casi en su totalidad mutuamente, reduciendo la covarianza residual explicable por el resto del sistema.
+
 
 ```{r}
 check_sphericity_bartlett(M)
@@ -55,6 +72,53 @@ cat("Chi-cuadrado:", b$chisq, "\n")
 cat("Grados de libertad (dof):", b$dof, "\n")
 cat("Valor p:", b$p, "\n")
 ```
+
+
+```{r}
+K = KMO(Corr$r)
+cat("El KMO es: ", K$MSA, "\n")
+K
+```
+
+```{r}
+scree(M) # se grafican los valores propios de R, y del análisis Factorial
+fa.parallel(M, fm = "ml", fa = "fa") #fm ="ml" indica que el método será mínimos cuadrados. fa="fa" significa que se hará un análisis factorial.
+```
+
+```{r}
+modelo1 = fa(M, nfactors =2, rotate = "none", fm = "mle")   # de máxima verosimilitud
+modelo2 = fa(M, nfactors = 2, rotate = "none", fm = "minres") # Modelo de mínimo residuo
+print(modelo1, cut = 0.3) 
+print(modelo2, cut = 0.3) #Muestra solo las cargas mayores a 0.3 (las más importantes)
+```
+
+```{r}
+M1_commd = c(modelo1$communality, modelo1$uniquenesses)
+M2_commd= c(modelo2$communality, modelo2$uniquenesses)
+T_ = data.frame(M1_commd,M2_commd)
+T_
+```
+
+
+```{r, fig.width=10, fig.height=7}
+modelo1V = fa(M, nfactors = 2, rotate = "varimax", fm = "mle") 
+biplot.psych(modelo1V, main="Rotación Varimax", sub="Método MLE", col=c("gray","red"))
+fa.diagram(modelo1V, main="Rotación Varimax, Método MLE")
+```
+
+```{r}
+print(modelo1V$loadings, cut=0.3)
+```
+
+```{r}
+modelo1V = fa(M, nfactors = 2, rotate = "varimax", fm = "mle",  scores = "Bartlett") #scores = c("regression", "Bartlett", "tenBerge") por default es "regression"
+```
+
+```{r}
+fa.diagram(modelo1V)
+```
+
+
 
 
 

@@ -15,7 +15,7 @@ Calcula la media para la resistencia por tratamiento, es decir, por altura del p
 
 ```{r}
 # Filtrar niveles 1, 2 y 3 de Altura poste
-datos <- read.csv("C:/Users/ludio/Downloads/datosRes-1.csv")
+datos <- read.csv("C:/Users/ldiazo/Downloads/datosRes-1.csv")
 datos_sub <- subset(datos, Altura.poste %in% c(1, 2, 3))
 datos_sub$Tratamiento <- as.factor(datos_sub$Altura.poste)
 

@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #### Realiza el análisis de los valores y vectores propios con la matriz de covarianzas y con la de correlación. Analiza la varianza explicada por cada componente en cada caso e interpreta dentro del contexto del problema.
 
 ```{r}
-datos <- read.csv("C:/Users/ludio/Downloads/paises_mundo.csv")
+datos <- read.csv("C:/Users/ldiazo/Downloads/paises_mundo.csv")
 nombres_vars <- colnames(datos)
 
 S = cov(datos)
