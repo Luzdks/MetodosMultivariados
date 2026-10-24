@@ -1,0 +1,282 @@
+---
+title: "Actividad 1.11B Series de tiempo"
+author: "Lucero Díaz"
+date: "2026-10-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Preparación
+
+```{r}
+library(forecast)
+library(ggplot2)
+```
+
+```{r}
+ventas <- c(4.8, 4.1, 6.0, 6.5,
+                5.8, 5.2, 6.8, 7.4,
+                6.0, 5.6, 7.5, 7.8,
+                6.3, 5.9, 8.0, 8.4)
+
+x = ts(ventas, frequency = 4, start = c(2016, 1))
+```
+
+```{r}
+autoplot(x) +
+  ggtitle("Serie trimestral de ventas") +
+  xlab("Año") + ylab("Ventas") +
+  theme_minimal()
+```
+
+Podemos observar que la serie de tiempo es no estacionaria. Como se mencionó en la tarea anterior, se presenta una tendencia creciente a lo largo del tiempo, donde todos los años se repite el mismo patrón: el segundo trimestre es el que tiene la menor cantidad de ventas en el año (mínimo local), pero eventualmente estas incrementan en el tercer y cuarto trimestre, llegando a su punto máximo anual.
+
+
+## 2. Ajuste automático del modelo ARIMA/SARIMA
+
+```{r}
+modelo = auto.arima(x)
+modelo
+```
+
+Aplicando el ajuste automático del modelo ARIMA/SARIMA, como claramente se observa estacionalidad en la serie de tiempo, se utiliza el modelo SARIMA. El modelo arrojado fue el siguiente:
+
+$$\text{SARIMA}(0,1,0)(0,1,0)[4]$$
+
+Tanto para la parte no estacional como para la parte estacional se aplica una diferencia para eliminar tendencia y estacionalidad. Esto quiere decir que, para tratar estacionalidad, se le restan las ventas del trimestre actual el valor de las ventas del mismo trimestre pero un año atrás; después de quitar la estacionalidad, aún se necesita aplicar una diferencia para eliminar la tendencia, donde se le resta al valor actual el valor anterior.
+
+No se incluye ninguna parte de AR o MA ni en la parte estacional ni en la parte no estacional. Al final no se requieren ninguno de estos términos puesto que las diferencias anteriores son suficientes para convertir a la serie de tiempo en estacionaria, por lo que no hay autoregresión remanente.
+
+Con respecto a los cálculos realizados en la actividad anterior, en el modelo SARIMA la diferencia estacional reemplaza el cálculo de los índices estacionales, mientras que la diferencia ordinaria (o la constante de deriva) reemplaza el ajuste por regresión de la tendencia lineal/cuadrática sobre las ventas desestacionalizadas. 
+
+
+## 3. Pronóstico del siguiente año
+
+```{r}
+pred = forecast(modelo, h = 4, level = 95)
+pred
+```
+
+Valores pronosticados (Año 5 / 2020) por el modelo SARIMA:
+
+* Q1: $6.9$ 
+
+* Q2: $6.5$ 
+
+* Q3: $8.6$ 
+
+* Q4: $9.0$
+
+Los valores del modelo SARIMA son cercanos a los conseguidos por nuestro mejor modelo de la actividad pasada, el modelo cuadrático multiplicativo ($6.8, 6.1, 8.0, 8.4$), con valores de diferencia de 0.1 a 0.6 aprox. (donde la mayor diferencia están entre los trimestre 3 y 4). Las últimas dos columnas representan el límite inferior y el límite superior del intervalo de confianza del 95\%. Esto quiere decir que hay una probabilidad del 95\% de que los valores reales de las ventas estén dentro de ese rango; notamos que los valores obtenidos por el modelo "manual" caen también dentro de este intervalo.
+
+
+## 4. Serie + Ajuste + Pronóstico + IC 95\%
+
+```{r}
+ajuste = fitted(modelo)
+df = data.frame(tiempo = as.numeric(time(x)), ventas = as.numeric(x), ajuste = as.numeric(ajuste))
+df_pred = data.frame(tiempo = as.numeric(time(pred$mean)), pred= as.numeric(pred$mean), lo95   = as.numeric(pred$lower[ , "95%"]), hi95   = as.numeric(pred$upper[ , "95%"]))
+ggplot() +
+  geom_line(data = df, aes(x = tiempo, y = ventas), color = "black", size = 1.1) +
+  geom_line(data = df, aes(x = tiempo, y = ajuste), color = "blue", linetype = "dashed", size = 1) +
+  geom_line(data = df_pred, aes(x = tiempo, y = pred), color = "red", size = 1.2) +
+  geom_ribbon(data = df_pred, aes(x = tiempo, ymin = lo95, ymax = hi95), fill = "orange", alpha = 0.25) +
+  labs(title = "Serie + Ajuste SARIMA + Pronóstico (IC 95%)",  x = "Año", y = "Ventas") +
+  theme_minimal()
+```
+
+El pronóstico generado por el modeo SARIMA en general sí sigue de forma decente los datos reales de la serie de tiempo. Particularmente, sigue a la perfección los valores de la serie de tiempo hasta el segundo trimestre de 2017, donde a partir de aquí el pronóstico empieza a tener diferencias respecto a las ventas originales, donde la más notoria es la del segundo trimestre de 2018. Aún así, como se mencionó antes, los valores entre el pronóstico y la realidad son cercanos entre sí, lo que indica que sí se llega a realizar una buena reproducción de la estacionalidad mostrada; con esto, se puede considerar que el modelo sí sigue bien la serie de tiempo. Enfocándonos en la predicción, vemos como hay un crecimiento gradual en el ancho de la banda de confianza al pasar por cada trimestre. Esto refleja la acumulación natural de incertidumbre al proyectar períodos más lejanos en el futuro.
+
+
+## 5. Métricas de evaluación
+
+```{r}
+accuracy(modelo)
+```
+
+El valor de RMSE es de $\approx 0.235$, lo que en escala del modelo es un valor relativamente muy bajo considerando las ventas oscilan entre 4.1 y 8.4. La métrica que utilizaría para explicar el error a un gerente no técnico sería el MAPE, puesto que es de los más intuitivos de explicar al hablar de un error promedio ("el modelo tiene un margen de error promedio de solo $2.27\%$") y no incluir términos más complicados como desviaciones estándar, así como también no preocuparse en explicar si es positivo o negativo, puesto que el error es absoluto: el propósito principal de la métrica es únicamente mostrar qué tanto porcentaje hay de error, y sigue manteniéndose como una métrica relevante a conocer.
+
+
+## 6. Diagnóstico de residuos (la parte clave)
+
+```{r}
+checkresiduals(modelo)
+```
+
+Por lo que se puede ver en la gráfica de residuos a través del tiempo, no se observa ninguna tendencia o estacionalidad notable. Lo único que hay es un pico moderado de poco menos de -0.5. Por lo cual, podemos decir que en general los residuos sí parecen ruido blanco.
+
+El histograma se ve aproximadamente simétrico, con centro cercano a 0. Únicamente tiene ciertos datos atípicos a la izquierda (negativos).
+
+Se notan un total de 3 lags notables. Sin embargo, ninguno sobresale de las bandas azules, lo que confirma la ausencia de autocorrelación en los errores.
+
+Viendo la prueba de Ljung-Box, el valor de su p-value es $p > 0.03$, por lo que no hay evidencia estadísticamente significativa para rechazar la hipótesis nula. Esto indica que los residuos efectivamente son ruido blanco.
+
+
+## 7. Verificación de los supuestos
+
+```{r}
+library(lmtest)
+dwtest(residuals(modelo) ~ 1)
+```
+
+Se observa como $\text{DW} \approx 2.59$ y $p > 0.03$, por lo que no se rechaza la hipótesis nula y confirmamos los residuos son ruido blanco, así como también que no hay evidencia suficiente para afirmar autocorrelación. Esto coincide y respalda los resultados mostrados con la prueba Ljung-Box y la ACF.
+
+Una prueba alternativa que complementa y confirma los resultados obtenidos por la prueba Ljung-Box y la ACF es la prueba Breusch-Godfrey. Su hipótesis nula $\text{H}_0$ consiste en que no hay autocorrelación hasta el rezago indicado. De esta manera, podemos jugar con diversos rezagos (lo cual no se puede hacer con Durbin-Watson que solo evalúa en lag 1) y confirmar que no hay autocorrelación en los errores. En este caso, probaremos con order = {1, 2, 4}.
+
+```{r}
+library(tseries)
+
+bgtest(residuals(modelo) ~ 1, order = 1)
+bgtest(residuals(modelo) ~ 1, order = 2)
+bgtest(residuals(modelo) ~ 1, order = 4)   
+```
+
+Como todos los p-values cumplen que $p > 0.03$, no se rechaza la hipótesis nula planteada, por lo cual se confirma que los residuos son ruido blanco.
+
+
+```{r}
+shapiro.test(residuals(modelo))
+```
+
+```{r}
+qqnorm(scale(residuals(modelo)))
+qqline(scale(residuals(modelo)), col = "red")
+```
+
+Como $p < 0.03$ en la prueba de normalidad de Shapiro-Wilk, se rechaza la hipótesis nula. Esto junto con lo visto en el QQplot, donde no todos los datos siguen la qqline planteada y vemos la presencia de colas pesadas, nos indica que no hay normalidad en los residuos, por lo que en realidad los IC no son razonables por completo.
+
+
+```{r}
+bptest(residuals(modelo) ~ time(x))
+```
+
+En la prueba de Breusch-Pagan, observamos como $p > 0.03$, por lo que no hay evidencia estadística suficiente para rechazar la hipótesis nula ($\text{H}_0$: Los residuos presentan homocedasticidad). Por lo tanto, los residuos del modeo SARIMA efectivamente presentan homocedasticidad.
+
+
+```{r}
+res = scale(residuals(modelo))
+which(abs(res) > 2*sd(res))
+```
+
+Únicamente se identifica un outlier, el cual es el del periodo 9 (primer trimestre del tercer año). Esta observación coincide con la que tiene el pico aislado mencionado en el punto anterior, por lo cual tiene sentido que sea la única observación atípica.
+
+Para conectar esta parte con leverage e influencia, y como ARIMA no es una regresión y no tiene matriz sombrero, usaremos una regresión lineal auxiliar.
+
+```{r}
+# B) Trimestres con residuos grandes
+
+z <- as.numeric(scale(residuals(modelo)))
+tab <- data.frame(
+  t         = 1:length(x),
+  anio      = floor(time(x) - start(x)[1]) + 1,
+  trimestre = as.numeric(cycle(x)),
+  ventas    = as.numeric(x),
+  ajuste    = as.numeric(fitted(modelo)),
+  residuo   = as.numeric(residuals(modelo)),
+  z_res     = z
+)
+tab$atipico <- abs(tab$z_res) > 2
+tab[tab$atipico, ]            # trimestres con |residuo estandarizado| > 2
+which(abs(z) > 2)
+
+try(print(tsoutliers(x)), silent = TRUE)
+ 
+ 
+# C) Leverage e influencia
+# Se usa una regresión auxiliar (tendencia lineal +
+# trimestres) para medir leverage e influencia de cada observación.
+
+t_    <- 1:length(x)
+trim  <- factor(cycle(x))
+aux   <- lm(as.numeric(x) ~ t_ + trim)
+ 
+p <- length(coef(aux)); n <- length(x)
+infl <- data.frame(
+  t         = t_,
+  anio      = tab$anio,
+  trimestre = tab$trimestre,
+  leverage  = hatvalues(aux),
+  cooks     = cooks.distance(aux),
+  dffits    = dffits(aux),
+  rstudent  = rstudent(aux),
+  z_arima   = tab$z_res
+)
+
+# Umbrales usuales
+infl$alto_leverage <- infl$leverage > 2 * p / n
+infl$alta_cook     <- infl$cooks    > 4 / n
+infl$alto_dffits   <- abs(infl$dffits) > 2 * sqrt(p / n)
+infl$atipico_arima <- abs(infl$z_arima) > 2
+round(infl, 3)
+ 
+# Observaciones señaladas por al menos un criterio
+infl[infl$alto_leverage | infl$alta_cook | infl$alto_dffits | infl$atipico_arima, ]
+ 
+summary(influence.measures(aux))
+ 
+plot(aux, which = 5)   # residuos vs leverage (curvas de Cook)
+ggplot(infl, aes(x = t, y = cooks)) +
+  geom_col(fill = "steelblue") +
+  geom_hline(yintercept = 4 / n, color = "red", linetype = "dashed") +
+  labs(title = "Distancia de Cook (regresión auxiliar)",
+       x = "Periodo", y = "Cook") +
+  theme_minimal()
+```
+
+Las potenciales observaciones influyentes que se nos arrojan son 5, 9 y 13.
+
+* Leverage: Los valores van de 0.26 a 0.36 aproximadamente, y los más altos están en los extremos de la serie (años 1 y 4).
+
+* Influencia: los periodos 5 y 13 superan el umbral de Cook y de DFFITS. Son los dos primeros trimestres de los años 2 y 4, y empujan la tendencia lineal del modelo de regresión auxiliar.
+
+El atípico del ARIMA (periodo 9) tiene residuo grande pero casi nula influencia ($\text{Cook} \approx 0.001$). Quitarlo apenas movería el ajuste. Los puntos influyentes de la regresión auxiliar, en cambio, no son atípicos en el ARIMA, porque el ARIMA ya absorbe su efecto con la diferencia estacional y el AR(1).
+
+Por lo tanto, se muestra que no hay ninguna observación la cual domine el modelo (sea influyente).
+
+
+```{r}
+plot(scale(residuals(modelo)), type = "h",
+     main = "Residuos estandarizados",
+     ylab = "Residuo estandarizado", ylim=c(-2,2))
+abline(h = c(-2, 2), col = "red", lty = 2)
+```
+
+Casi todos los residuos estandarizados quedan dentro de la banda +/-2 (a excepción del pico aislado que se mencionó antes). Por lo tanto, se puede deducir que el modelo en su mayor parte sí capta de manera adecuada el comportamiento de los datos.
+
+
+## 8. Conclusión
+
+Se estableció un modelo SARIMA $(\text{SARIMA}(0,1,0)(0,1,0)[4])$ que captura la tendencia mediante una diferencia ordinaria y la estacionalidad mediante una diferencia estacional trimestral. Con respecto a memoria inmediata y memoria estacional, no se requirieron añadir estos términos a nuestro modelo.
+
+El modelo reproduce fielmente la trayectoria histórica de ventas, siguiendo con la tendencia creciente y replicando casi de forma idéntica la estacionalidad de los datos. Los residuos mostrados en su mayoría tienen una magnitud mínimo, con únicamente uno de ellos presentando una magnitud mayor a lo que se busca.
+
+El comportamiento del pronóstico sí sigue con la tendencia creciente y con el patrón estacional de la serie original. La banda de confianza mostrada es lo suficientemente ancha para que cualquier posible valor real caiga dentro de ella, y su amplitud incrementa a medida de que se avanza en el tiempo.
+
+Con respecto al análisis de supuestos y residuos, se confirma que sí hay independencia del error al ser los residuos ruido blanco, y estos mismos presentan homocedasticidad. No obstante, la normalidad se rechazó por los resultados vistos en la prueba de Shapiro-Wilk y el comportamiento del QQplot, así como también existe un atípico en el modelo (observación 9, primer trimestre del tercer año); sin embargo, este atípico no es tan grande como para ser una observación influyente que domine el modelo. En general, sí se cumplen razonablemente los supuestos, a excepción de la normalidad; aún así, la normalidad no es tan estricta en ARIMA/SARIMA.
+
+En conclusión, el modelo en general *sí* es adecuado para obtener una predicción razonablemente cercana a los valores reales de las ventas. Los pronósticos sí llegan a ser confiables para la toma de decisiones, por todo lo mencionado anteriormente. A pesar de esto, un área de mejora es tratar mejor con la normalidad de los datos, puesto a pesar de que SARIMA no es tan estricto este supuesto, la falta de este puede influenciar un posible mal desempeño en los IC y su interpretación.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Claude
+
+(2) Uso realizado: Generación de código para la prueba Breusch-Godfrey y para el análisis de Leverage e Influencia.
+
+(3) Secciones donde se utilizó: Sección 7, en las pruebas de autocorrelación y de identificación de atípicos.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+
+
+
+
+
+

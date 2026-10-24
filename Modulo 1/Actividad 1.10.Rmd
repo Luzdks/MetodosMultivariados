@@ -1,0 +1,111 @@
+---
+title: "Actividad 1.10"
+author: "Lucero Díaz"
+date: "2026-10-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(factoextra)
+```
+
+#### 1. Lea los datos con read.csv y cree una nueva matriz sin las variables fecha y hora, finalmente, cree una nueva matriz estandarizada.
+
+Quitamos los datos los cuales sean -99 (datos nulos).
+
+```{r}
+M = read.csv("C:/Users/ludio/Downloads/TLA2021.csv")
+M[M == -99] <- NA
+
+# 3. Eliminar las filas que contengan NA
+M_clean <- na.omit(M)
+```
+
+```{r}
+names(M_clean)
+M1 = M_clean[, -1]  # quitando la columna de fecha
+Mstand = scale(x = M1, center = TRUE, scale = TRUE)
+M1f = data.frame(Mstand)
+```
+
+#### 2. Aplique el algoritmo de k-means y su gráfico con las funciones kmeans y fviz_cluster.
+
+```{r}
+set.seed(123)
+km.res <- kmeans(M1f, 3, nstart = 25)
+```
+
+```{r}
+fviz_cluster(object = km.res, data = M1f, show.clust.cent = TRUE, ellipse.type = "euc", star.plot = FALSE, repel = TRUE, geom="point")
+```
+
+```{r}
+centroides_originales <- aggregate(M1f, by = list(Cluster = km.res$cluster), FUN = mean)
+print(centroides_originales)
+```
+
+Observamos el plano donde se muestran como ejes los primeros dos componentes principales. Probamos inicialmente un kmeans de 3 clusters, donde aún así hay ciertas áreas que se traslapan con respecto a otras. En este kmeans no se usa una forma en específico para delimitar los clusters ("euc"). Probaremos otras gráficas de kmeans con diferente cantidad de agrupaciones y con diferente forma de elipses. Finalmente, también se muestran los centroides de cada cluster (la media de cada variable para cada cluster).
+
+```{r}
+km_clusters = kmeans(M1f, 4, nstart = 25)
+fviz_cluster(object = km_clusters, data = M1f, show.clust.cent = TRUE, ellipse.type = "norm", star.plot = FALSE, repel = TRUE, geom="point")
+```
+
+```{r}
+centroides_originales <- aggregate(M1f, by = list(Cluster = km_clusters$cluster), FUN = mean)
+print(centroides_originales)
+```
+
+Aquí se observan 4 agrupaciones y elipses con el comando "norm". Observamos como se traslapan entre sí el área de cada cluster, en mayor medida con el 3er cluster, que hasta pareciera que podría llegar a ser mejor que ese cluster no existiese y esos datos repartirlos en los clusters existentes. 
+
+```{r}
+km_clusters = kmeans(M1f, 2, nstart = 25)
+fviz_cluster(object = km_clusters, data = M1f, show.clust.cent = TRUE, ellipse.type = "convex", star.plot = FALSE, repel = TRUE, geom="point")
+```
+
+```{r}
+centroides_originales <- aggregate(M1f, by = list(Cluster = km_clusters$cluster), FUN = mean)
+print(centroides_originales)
+```
+
+Finalmente probamos el caso donde hay dos clusters y los datos de cada cluster están identificados por formas convexas ("convex"). A diferencia de los kmeans anteriores, esta muestra menos traslape entre clusters y una delimitación más clara de los datos. Esto también se puede observar en los valores que toma cada variable de los centroides, donde se observa una mayor diferencia las medias de cada clustes en cada una de las variables.
+
+
+#### 3. Definan el número de agrupaciones óptimas.
+
+Aquí utilizaremos dos métodos para definir el número de agrupaciones óptimas: el método de la silueta y el método del codo.
+
+```{r}
+fviz_nbclust(M1f, kmeans, method = "silhouette") + labs(title = "Método de la Silueta")
+```
+
+El método de la silueta nos indica que el número óptimo de clusters es 3 (valor con mayor coeficiente de silueta, es decir, mayor cohesión entre datos de un mismo cluster y mayor lejanía de entre datos de otros clusters).
+
+```{r}
+fviz_nbclust(M1f, kmeans, method = "wss") + geom_vline(xintercept = 4, linetype = 2)
+```
+
+Mientras que el método del codo nos indica que el número óptimo de clusters es 4 (cantidad de clusters donde se obtiene una menor dispersión entre cada cluster relevante y donde se asume que más clusters no mejorarán de manera considerable el kmeans).
+
+A pesar de los datos obtenidos en cada método, de manera gráfica observamos que el número de clusters que mejor funcionaba era de 2. Por lo tanto, esto reafirma que es importante obtener todos los resultados posibles de métodos de agrupación y compararlos entre sí, puesto que así obtendremos una mejor interpretación con los datos y la situación que estemos trabajando.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, específicamente con los métodos de número de agrupaciones óptimo y para sacar el valor de los centroides.
+
+(3) Secciones donde se utilizó: Sección 2 y 3, para obtener los valores de las centroides y para obtener los distintos métodos de cantidad de agrupaciones óptima.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+

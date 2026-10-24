@@ -1,16 +1,94 @@
 ---
-title: "ANOVA"
+title: 'Actividad 2.5 Análisis de varianza: Detergentes'
 author: "Lucero Díaz"
 date: "2026-09-22"
-output: word_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Con respecto al caso de estudio planteado, pruebe al nivel 0.01 de significancia si las diferencias entre las medias de las lecturas de blancura son significativas.
+
+* Detergente A: 77, 81, 71, 76, 80
+
+* Detergente B: 72, 58, 74, 66, 79
+
+* Detergente C: 76, 85, 82, 80, 77
+
+Las medias de estas tres muestras fueron 77, 68 y 80, y queremos saber si las diferencias entre ellas son significativas o si se pueden atribuir al azar
+
+
+#### 1. Establece la hipótesis estadística.
+
+Como nuestro objetivo es conocer si las diferencias entre las medias (al menos una) son estadísticamente significativas, planteamos las siguientes hipótesis nula $H_0$ e hipótesis alternativa $H_1$:
+
+* **Hipótesis nula ($H_0$)**: $\mu_A = \mu_B = \mu_C$ (No existen diferencias significativas entre las medias del nivel de blancura de los tres detergentes). 
+
+* **Hipótesis alternativa ($H_1$)**: Al menos una de las medias de blancura ($\mu_i$) es diferente de las demás.
+
+
+#### 2. Realiza el ANOVA (calculando el estadístico de prueba mediante las sumas de cuadrados medios $MS_{Tr}$ (intergrupos) y $MS_E$ (intragrupos). 
+
 ```{r}
-# 1. Crear el conjunto de datos
+# Definición de los datos de cada detergente
+A <- c(77, 81, 71, 76, 80)
+B <- c(72, 58, 74, 66, 79)
+C <- c(76, 85, 82, 80, 77)
+
+# Parámetros del experimento
+k <- 3                              
+n_i <- c(length(A), length(B), length(C))  
+N <- sum(n_i)                    
+alpha <- 0.01                   
+
+# Cálculo de medias
+media_A <- mean(A)
+media_B <- mean(B)
+media_C <- mean(C)
+medias_grupos <- c(media_A, media_B, media_C)
+
+todos_los_datos <- c(A, B, C)
+media_general <- mean(todos_los_datos)
+
+# Sumas de Cuadrados (SS)
+SSTr <- sum(n_i * (medias_grupos - media_general)^2)
+SSE  <- sum((A - media_A)^2) + sum((B - media_B)^2) + sum((C - media_C)^2)
+SST  <- SSTr + SSE
+
+# Grados de Libertad (df)
+df_Tr <- k - 1
+df_E  <- N - k
+df_T  <- N - 1
+
+# Cuadrados Medios (MS)
+MSTr <- SSTr / df_Tr
+MSE  <- SSE / df_E
+
+# Estadístico de prueba F, Valor Crítico y Valor p
+F_calc  <- MSTr / MSE
+F_crit  <- qf(1 - alpha, df_Tr, df_E)
+p_valor <- pf(F_calc, df_Tr, df_E, lower.tail = FALSE)
+
+# Creación de la Tabla ANOVA
+tabla_anova <- data.frame(
+  Fuente      = c("detergente", "Residuos", "Total"),
+  SS          = c(SSTr, SSE, SST),
+  df          = c(df_Tr, df_E, df_T),
+  MS          = c(MSTr, MSE, NA),
+  F_calculado = c(F_calc, NA, NA),
+  F_critico   = c(F_crit, NA, NA),
+  p_value     = c(p_valor, NA, NA)
+)
+
+print(tabla_anova, digits = 4)
+```
+
+```{r}
+# Verificación por función aov()
 blancura <- c(
   77, 81, 71, 76, 80,  # Detergente A
   72, 58, 74, 66, 79,  # Detergente B
@@ -21,10 +99,33 @@ detergente <- factor(rep(c("A", "B", "C"), each = 5))
 
 datos <- data.frame(detergente, blancura)
 
-# 2. Ajustar el modelo ANOVA
 modelo_anova <- aov(blancura ~ detergente, data = datos)
 
-# 3. Ver la tabla de resultados
 summary(modelo_anova)
 ```
+
+#### 3. Interpreta el resultado desde la perspectiva estadística y en el contexto del problema.
+
+Como nuestro nivel de significancia evaluado es $\alpha = 0.01$ y el p-value conseguido es de 0.0374, no se rechaza la hipótesis nula $H_0$, por lo tanto no hay evidencia estadística suficiente para decir que las diferencias entre medias son significativamente diferentes.
+
+
+#### 4. Concluye en el contexto del problema.
+
+Como se mencionó en el punto anterior, no hay evidencia estadística suficiente para rechazar la hipótesis nula $H_0$, por lo que no podemos afirmar que existen diferencias significativas entre las medias de los diferentes detergentes. Por esto mismo, no podemos decir que el nivel de blancura de un detergente es superior/inferior a otro, todos tienen un rendimiento similar. Las variaciones encontradas en las medias de las muestras se pueden atribuir al azar o durante el proceso de lavado y medición.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea.
+
+(3) Secciones donde se utilizó: En la parte 2. La IA aportó al momento de realizar el código, tanto al momento de los cálculos manuales como con el código de verificación de resultados.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
 

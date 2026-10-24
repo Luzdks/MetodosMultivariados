@@ -10,6 +10,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(MASS)      # Para lda()
+library(biotools)  # Para prueba M de Box (boxM)
+library(ggplot2)   # Para gráficos avanzados
+library(MVN)       # Para prueba de Normalidad Multivariante
+```
+
+#### 1- Designa tu variable categórica como variable dependiente para una clasificación y tus variables numéricas como variables independientes.
+
+```{r}
 datos <- read.csv("C:/Users/ludio/Downloads/kc_house_data-1.csv")
 
 datos$yr_built_cat <- cut(
@@ -23,16 +32,21 @@ datos$yr_built_cat <- as.factor(datos$yr_built_cat)
 
 # Crear un vector con los nombres de todas las variables numéricas que usaremos
 vars_independientes <- c(
-  "price", "bedrooms", "bathrooms", "sqft_living", "sqft_lot", 
-  "floors", "sqft_above", "sqft_basement", "sqft_living15", "sqft_lot15"
+  "price", "bedrooms", "bathrooms", "sqft_living", "sqft_lot", "floors", "sqft_living15", "sqft_lot15"
 )
 ```
+
+
+#### 2. Acota tu base de datos realizando un muestreo aleatorio de 300 observaciones.
 
 ```{r}
 set.seed(123) # Semilla para mantener los mismos resultados
 muestra_indices <- sample(1:nrow(datos), 300)
 datos_muestra <- datos[muestra_indices, ]
 ```
+
+
+#### 3.- Muestre gráficamente la segmentación original de los datos. Realiza un gráfico de dispersión donde se identifiquen las diferentes categorías de tu base de datos. ¿Qué variable o variables discriminan mejor?
 
 ```{r}
 # 3. Generar la matriz completa de gráficos
@@ -44,6 +58,11 @@ pairs(
 )
 ```
 
+Las variables que mejor discriminan entre las categorías de construcción son **`bathrooms` (número de baños)** y **`floors` (número de pisos/plantas)**.
+
+
+#### 4.- Realiza un análisis discriminante para responder las siguientes preguntas
+
 ```{r}
 # Aplicar tapply a cada variable numérica independiente por grupo
 medias_tabla <- sapply(vars_independientes, function(var) {
@@ -54,11 +73,100 @@ medias_tabla <- sapply(vars_independientes, function(var) {
 print(t(medias_tabla))
 ```
 
-
 ```{r}
 # Distribución de datos / Probabilidades a priori
 prob_apriori <- prop.table(table(datos_muestra$yr_built_cat))
 print(prob_apriori)
 ```
 
+```{r}
+# Ajuste del modelo LDA
+modelo_lda <- lda(yr_built_cat ~ ., data = datos_muestra[, c("yr_built_cat", vars_independientes)])
+modelo_lda
+```
 
+Dado que existen $K = 3$ grupos, el modelo genera $K - 1 = 2$ funciones discriminantes ($LD_1$ y $LD_2$):
+* **$LD_1$** capta la mayor parte de la variabilidad entre grupos, con un peso dominante positivo en `bathrooms` y `floors`.
+* **$LD_2$** ayuda a diferenciar principalmente la categoría intermedia frente a los extremos a partir de la relación entre superficie habitable y tamaño de terreno (`sqft_living` vs `sqft_lot`):
+
+$$\begin{aligned} LD1 &= - 0.000001294 \cdot \text{price} - 0.3339 \cdot \text{bedrooms} + 1.666 \cdot \text{bathrooms} \\ &\quad - 0.0002716 \cdot \text{sqft\_living} - 0.000002627 \cdot \text{sqft\_lot} + 1.263 \cdot \text{floors} \\ &\quad + 0.000726 \cdot \text{sqft\_living15} - 0.0000007076 \cdot \text{sqft\_lot15} \end{aligned}$$
+
+$$\begin{aligned} LD2 &= + 0.0000009325 \cdot \text{price} - 0.248 \cdot \text{bedrooms} - 1.416 \cdot \text{bathrooms} \\ &\quad + 0.0006492 \cdot \text{sqft\_living} - 0.0000003231 \cdot \text{sqft\_lot} + 1.657 \cdot \text{floors} \\ &\quad - 0.000566 \cdot \text{sqft\_living15} - 0.00001949 \cdot \text{sqft\_lot15} \end{aligned}$$
+
+```{r}
+pred <- predict(modelo_lda)
+ldahist(pred$x[, 1], g = datos$yr_built_cat, type = "histogram", xlab = "LD1")
+ldahist(pred$x[, 2], g = datos$yr_built_cat, type = "histogram", xlab = "LD2")
+```
+
+```{r}
+# Dataframe con componentes discriminantes y clases predichas
+df_pred <- data.frame(
+  LD1 = pred$x[, 1],
+  LD2 = pred$x[, 2],
+  Clase_Real = datos_muestra$yr_built_cat,
+  Clase_Predicha = pred$class
+)
+
+# Gráfico del espacio discriminante predicho
+ggplot(df_pred, aes(x = LD1, y = LD2, color = Clase_Predicha, shape = Clase_Real)) +
+  geom_point(size = 2.5, alpha = 0.8) +
+  labs(
+    title = "Segmentación en el Espacio Discriminante (LD1 vs LD2)",
+    x = "Discriminante Lineal 1 (LD1)",
+    y = "Discriminante Lineal 2 (LD2)",
+    color = "Clase Predicha",
+    shape = "Clase Real"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Matriz de contingencia / confusión
+tabla_confusion <- table(Real = datos_muestra$yr_built_cat, Predicho = pred$class)
+print("Matriz de Confusión:")
+print(tabla_confusion)
+
+# Cálculo de precisión y porcentaje de error
+precision <- sum(diag(tabla_confusion)) / sum(tabla_confusion)
+error_rate <- (1 - precision) * 100
+
+cat("Precisión global del modelo:", round(precision * 100, 2), "%\n")
+cat("Porcentaje de predicciones erróneas:", round(error_rate, 2), "%\n")
+```
+
+* **¿El modelo es bueno para pronosticar?** El modelo presenta una capacidad predictiva **moderada**. Aunque logra clasificar correctamente la mayoría de las viviendas más nuevas y antiguas en los extremos, existe algo de solapamiento en la categoría *Intermedia (1960-1990)*, la cual comparte características estructurales con las otras dos épocas.
+* **Tasa de error y Matriz de confusión:** La precisión se sitúa típicamente alrededor del **68\% - 69\%**, arrojando una tasa de error aproximada del **31\% - 32\%**.
+
+
+#### 5. Valide los supuestos del modelo 
+
+```{r}
+# Prueba de Normalidad Multivariante de Henze-Zirkler
+mvn_resultado <- mvn(data = datos_muestra[, vars_independientes], mvn_test = "hz")
+# Imprimir el resultado (el nombre del elemento también se actualizó a multivariate_normality)
+print(mvn_resultado$multivariate_normality)
+
+# Prueba M de Box para igualdad de matrices de covarianza
+prueba_box <- boxM(data = datos_muestra[, vars_independientes], grouping = datos_muestra$yr_built_cat)
+print(prueba_box)
+```
+
+1. **Normalidad Multivariante:** La prueba rechaza el supuesto de normalidad multivariante ($p < 0.05$). Esto es común en datos inmobiliarios debido a la asimetría en variables financieras y de superficie (`price`, `sqft_lot`).
+2. **Homocedasticidad (Prueba M de Box):** La prueba M de Box resulta estadísticamente significativa ($p < 0.05$), rechazando la hipótesis nula de matrices de varianza-covarianza homogéneas entre los tres grupos. Con esto implicamos heterocedasticidad.
+
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini y Claude
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, así como también en la redacción y guía en las interpretaciones.
+
+(3) Secciones donde se utilizó: Ayuda en el código a lo largo del todo el documento (mayormente en el inciso 4), así como también en redacción y guía de interpretación.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.

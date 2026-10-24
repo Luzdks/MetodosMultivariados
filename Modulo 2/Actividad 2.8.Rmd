@@ -1,0 +1,195 @@
+---
+title: "Actividad 2.8"
+author: "Lucero Díaz"
+date: "2026-10-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ISLR2)
+library(MASS)
+library(class)
+library(e1071)
+library(car)
+library(lmtest)
+```
+
+```{r}
+data("Weekly")
+summary(Weekly)
+```
+
+### Parte 1. 
+
+Divida el conjunto de datos en un conjunto de:
+
+* Entrenamiento (Observaciones desde 1990 hasta 2008)
+
+* Prueba (Observaciones desde 2009 y 2010)
+
+```{r}
+# Entrenamiento: 1990 a 2008
+# Prueba: 2009 a 2010
+train <- (Weekly$Year < 2009)
+Weekly.train <- Weekly[train, ]
+Weekly.test  <- Weekly[!train, ]
+
+Direction.test <- Weekly$Direction[!train]
+```
+
+
+## Parte 2. 
+
+Formule un modelo de regresión logística con el cual predecir el rendimiento actual del índice bursátil.
+
+```{r}
+# Ajuste del modelo logístico simple con el conjunto de entrenamiento
+fit.glm <- glm(Direction ~ Lag2, data = Weekly.train, family = binomial)
+
+# Resumen del modelo
+summary(fit.glm)
+```
+
+
+## Parte 3.
+
+Escriba el modelo de regresión logística. Tomando en cuenta los resultados obtenidos en el modelo de regresión logística, el modelo se expresa de la siguiente forma:
+
+
+Ecuación en forma Logit:
+
+$$\text{logit}(\text{Direction}) = 0.20326 + 0.05810 \cdot \text{Lag}_2$$
+
+Ecuación en forma de Probabilidad:
+
+$$p(\text{Direction}) = \frac{e^{0.20326 + 0.05810 \cdot \text{Lag}_2}}{1 + e^{0.20326 + 0.05810 \cdot \text{Lag}_2}}$$
+
+
+## Parte 4.
+
+```{r}
+coef_summary <- summary(fit.glm)$coefficients
+beta0 <- coef_summary["(Intercept)", "Estimate"]
+beta1 <- coef_summary["Lag2", "Estimate"]
+p_value_lag2 <- coef_summary["Lag2", "Pr(>|z|)"]
+
+cat("Beta_0 (Intercepto):", beta0, "\n")
+cat("Beta_1 (Lag2):", beta1, "\n")
+cat("p-value de Lag2:", p_value_lag2, "\n")
+cat("Odds Ratio (exp(Beta_1)):", exp(beta1), "\n")
+
+# Probabilidad predicha para Lag2 = 0
+prob_lag2_0 <- exp(beta0) / (1 + exp(beta0))
+cat("Probabilidad predicha cuando Lag2 = 0:", prob_lag2_0, "\n")
+```
+
+
+* ¿Es estadísticamente significativo el predictor ($\text{Lag}_2$)? ¿Cuál es su p-value?
+
+Como el p-value de $\text{Lag}_2$ es menor a 0.05, se rechaza la hipótesis nula $H_0$, por lo que podemos confirmar que este predictor es estadísticamente significativo.
+
+* ¿Qué indica el valor LaTeX: $\beta_1$?:
+
+Por por cada unidad que se incrementa la variable Lag2, se espera que el logaritmo de odds de la variable Direction se incremente en promedio 0.0581 unidades.
+
+Es decir, por cada unidad que se incrementa la variable $\text{Lag}_2$, los odds de que Direction sea "Up" se incrementan en promedio 1.0598 unidades (lo que representa un incremento del 5.98\% en la razón de momios, ya que $e^{0.0581} \approx 1.0598$). Esto corresponde a una probabilidad de que el mercado tenga un valor positivo en el día de hoy (evaluado con $\text{Lag}_2 = 0$) de p = 0.5506 (o 55.06\%).
+
+
+## Parte 5.
+
+Represente gráficamente el modelo, grafique la curva de regresión logarítmica.
+
+```{r}
+plot(Weekly.train$Lag2, ifelse(Weekly.train$Direction == "Up", 1, 0),
+     xlab = "Lag2 (%)", ylab = "P(Direction = Up)",
+     main = "Curva de Regresión Logística: Direction vs Lag2",
+     col = "gray", pch = 20,
+     xlim = c(-100, 100), ylim = c(0, 1))
+
+curve(predict(fit.glm, newdata = data.frame(Lag2 = x), type = "response"),
+      from = -100, to = 100, add = TRUE, col = "blue", lwd = 2)
+```
+
+
+## Parte 6.
+
+Evalúe el modelo.
+
+```{r}
+# ANOVA para comparar la devianza nula vs devianza residual
+anova(fit.glm, test = "Chisq")
+
+# Predicción de probabilidades en datos de prueba
+glm.probs <- predict(fit.glm, Weekly.test, type = "response")
+
+# Clasificación según el umbral estándar p = 0.5
+glm.pred <- rep("Down", nrow(Weekly.test))
+glm.pred[glm.probs > 0.5] <- "Up"
+
+# Matriz de confusión (Tabla de contingencia)
+conf_matrix <- table(glm.pred, Direction.test)
+print(conf_matrix)
+
+# Diagrama de mosaico
+mosaicplot(conf_matrix, main = "Matriz de Confusión - Datos de Prueba")
+
+# Cálculo de métricas
+accuracy    <- mean(glm.pred == Direction.test) * 100
+error_rate  <- 100 - accuracy
+sensitivity <- (conf_matrix["Up", "Up"] / sum(Direction.test == "Up")) * 100
+specificity <- (conf_matrix["Down", "Down"] / sum(Direction.test == "Down")) * 100
+
+cat(sprintf("\nPorcentaje de predicciones correctas (Accuracy): %.2f%%\n", accuracy))
+cat(sprintf("\nTasa de error: %.2f%%\n", error_rate))
+cat(sprintf("\nSensibilidad: Para aquellas semanas con un valor de mercado al alza, de todas las observaciones el modelo clasifica correctamente el %.2f%%\n", sensitivity))
+cat(sprintf("\nEspecificidad: Para las semanas con un valor de mercado a la baja, de todas las observaciones el modelo acierta en un %.2f%%\n", specificity))
+```
+
+Aunque la precisión total es del $62.5\%$, el modelo tiene una fuerte tendencia a predecir "Up" (alta sensibilidad del $91.8\%$), pero falla considerablemente al detectar semanas a la baja "Down" (baja especificidad del $20.9\%$).
+
+
+## Parte 7.
+
+Valide los supuestos del modelo. Para ello, verificaremos Independencia, Linealidad, y Tamaño muestral. En este caso no consideramos multicolinealidad ya que estamos trabajando con una regresión logística simple.
+
+```{r}
+# A. Independencia (Prueba de Durbin-Watson sobre residuos)
+dwtest(fit.glm)
+
+# C. Linealidad entre el predictor y el logit
+# Prueba de Box-Tidwell
+
+# Crear una versión desplazada de Lag2 que sea solo positiva
+Lag2_positiva <- Weekly.train$Lag2 - min(Weekly.train$Lag2) + 1
+
+# Ejecutar Box-Tidwell con la variable positiva
+boxTidwell(logit(Direction == "Up") ~ Lag2_positiva, data = Weekly.train)
+```
+
+* **Independencia**: Al realizar la prueba de Durbin-Watson, esta nos arroja que el p-value es mayor a 0.05 (0.9923). No se rechaza la hipótesis nula $H_0$ que asume independencia, por lo que no hay autocorrelación serial significativa en los residuos, cumpliendo con el supuesto.
+
+* **Linealidad**: Se asume que existe linealidad entre el predictor y el logit. Para verificar esto, se utiliza la prueba de Box-Tidwell. Si el p-value es mayor a 0.05, no hay significancia estadística para rechazar la hipótesis nula $H_0$. Como el p-value efectivamente es mayor a 0.05 (0.5275), se cumple con el supuesto.
+
+* **Tamaño muestral**. Como regla general, se requiere un mínimo de 10 casos con el resultado menos frecuente para cada variable independiente del modelo. En el conjunto de entrenamiento hay 427 observaciones "Down" y 558 "Up", superando por mucho el mínimo de 10 eventos requeridos para 1 predictor, por lo que este supuesto también se cumple.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, así como también en el formato del documento y preguntas puntuales para interpretación.
+
+(3) Secciones donde se utilizó: En todas las secciones hubo apoyo al momento de escribir el código, así como también en la sección 3 ayudó a escribir las fórmulas que describen el modelo en markdown.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+
+

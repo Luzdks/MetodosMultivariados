@@ -20,7 +20,7 @@ library(ppcor)
 #### 1. Obtener la matriz de correlaciones y la matriz de valores p de significancia por pares. Interpreten los resultado en equipo. 
 
 ```{r}
-datos <- read.csv("C:/Users/ldiazo/Downloads/datoslago.csv")
+datos <- read.csv("C:/Users/ludio/Downloads/datoslago.csv")
 
 M <- datos[, c("Tamano", "Temperatura", "Proteinas", "Oxigeno", "LnProteinas", "LnTamano")]
 
@@ -51,17 +51,26 @@ print(matriz_corr)
 print(corr_parcial)
 ```
 
-```{r}
-resultado <- pcor(M, method = "pearson")
-resultado$estimate  # Matriz de coeficientes de correlación parcial
-resultado$p.value   # Matriz de valores p asociados
-```
-
-
 En la matriz se pueden observar dos núcleos de covarianza: un grupo de bloques con colores cálidos, representando alta correlación positiva, formado por Tamano, LnTamano, Proteinas y LnProteinas; y otro grupo de bloques con tonos fríos/neutros, relacionados con el resto de variables (Oxigeno, Temperatura).
 
-Al calcular la correlación parcial, se observa una disminución drástica entre la mayoría de las parejas. Esto se debe a la redundancia de información (colinealidad) entre las variables directas y sus transformaciones logarítmicas. Tamano y LnTamano se explican casi en su totalidad mutuamente, reduciendo la covarianza residual explicable por el resto del sistema.
+```{r}
+resultado <- pcor(M)
+resultado$estimate  # Matriz de coeficientes de correlación parcial
+resultado$p.value   # Matriz de p-values
+```
 
+Al calcular la correlación parcial, se observa una disminución drástica entre la mayoría de los valores absolutos de los coeficientes de correlacion entre parejas. Esto se debe a la redundancia de información (colinealidad) entre las variables directas y sus transformaciones logarítmicas. Tamano y LnTamano se explican casi en su totalidad mutuamente, reduciendo la covarianza residual explicable por el resto del sistema. En la matriz de p-values también se observa una mayor cantidad de correlaciones entre parejas donde no se rechaza la hipótesis nula ($p > 0.05$), implicando que no son estadísticamente significativas.
+
+
+#### 3. Aplicar una prueba de correlación conjunta a los datos para verficar si es aplicable el Análisis Factorial y concluir.
+
+Aplicaremos la la Prueba de esfericidad de Bartlet, que contrasta la matriz de correlaciones de los datos con la matriz identidad.
+
+Se evalúa la hipótesis nula de que la matriz de correlaciones poblacional es la matriz identidad ($H_0: R = I$):   
+
+* **Hipótesis $H_0$**: Las variables no están correlacionadas (son ortogonales).   
+
+* **Hipótesis $H_1$**: La matriz de correlación difiere significativamente de la identidad (existe correlación conjunta).
 
 ```{r}
 check_sphericity_bartlett(M)
@@ -73,6 +82,10 @@ cat("Grados de libertad (dof):", b$dof, "\n")
 cat("Valor p:", b$p, "\n")
 ```
 
+Dado que $p < 0.05$, se rechaza la hipótesis nula $H_0$. Existe suficiente correlación conjunta entre las variables limnológicas, lo que confirma que el Análisis Factorial es técnicamente aplicable.
+
+
+#### 4. El KMO mide si los patrones de correlación son lo suficientemente compactos como para que tenga sentido buscar factores latentes (adecuación de muestral para aplicar un análisis factorial). Para interpretar el coeficiente KMO (Kaiser, Meyer y Olkin) se suele seguir el siguiente criterio dado por Kaiser (1974) :
 
 ```{r}
 K = KMO(Corr$r)
@@ -80,15 +93,27 @@ cat("El KMO es: ", K$MSA, "\n")
 K
 ```
 
+Se obtiene un valor KMO general de 0.63 (categorizable como mediocre según Kaiser, 1974). A pesar de esto, la prueba de Bartlett confirmó que sí existen correlaciones significativas. Por lo que el KMO indica que la muestra es idónea para la factorización, pero advierte sobre la distorsión creada por incluir simultáneamente variables originales ($X$) y sus logaritmos ($\ln X$). Si nos vamos al KMO individual de cada variable, la única variable que muestra un valos aceptable es LnProteinas; particularmente Temperatura presenta un valor muy bajo a comparación de las demás variables.
+
+
+#### 5. Para realizar el gráfico de Cattel y el análisis paralelo puede ayudarse del siguiente código. Recuerda que se usarán dos criterios para la extracción de factores (máxima verosimilitud: fm="ml" y mínimo residuo: fm="minres").
+
 ```{r}
-scree(M) # se grafican los valores propios de R, y del análisis Factorial
+scree(M) # se grafican los valores propios de R, y del análisis Factorial (Scree Plot de Cattell)
 fa.parallel(M, fm = "ml", fa = "fa") #fm ="ml" indica que el método será mínimos cuadrados. fa="fa" significa que se hará un análisis factorial.
 ```
+
+El codo de la curva en el gráfico de Cattell se estabiliza a partir del segundo factor. El análisis paralelo confirma que únicamente los primeros 2 factores reales superan a los valores propios generados aleatoriamente (percentil 95). El número adecuado de factores a extraer es 2. Esto coincide exactamente con los dos constructos teóricos planteados en la investigación: Productividad y Hábitat.
+
+
+#### 6. Haz el análisis factorial usando el criterio de máxima verosimilitud y el de mínimo residuo.
 
 ```{r}
 modelo1 = fa(M, nfactors =2, rotate = "none", fm = "mle")   # de máxima verosimilitud
 modelo2 = fa(M, nfactors = 2, rotate = "none", fm = "minres") # Modelo de mínimo residuo
-print(modelo1, cut = 0.3) 
+cat("Criterio de máxima verosimilitud \n")
+print(modelo1, cut = 0.3)
+cat("\nCriterio de mínimo residuo \n")
 print(modelo2, cut = 0.3) #Muestra solo las cargas mayores a 0.3 (las más importantes)
 ```
 
@@ -99,27 +124,56 @@ T_ = data.frame(M1_commd,M2_commd)
 T_
 ```
 
+Tamano, LnTamano, LnProteinas y Proteinas quedan muy bien explicadas por el modelo en ambos métodos. Las comunalidades altas indican que casi toda su varianza es compartida con los factores. Temperatura es la variable en la que los métodos más discrepan. Con el modelo de mínimo residuo tiene comunalidad 0.85 y define casi por sí sola el factor 2 (carga 0.92). Con máxima verosimilitud la comunalidad baja a 0.40 y el factor 2 mezcla Temperatura con un contraste frente a Proteinas. Esto es coherente con su KMO individual de 0.41, el más bajo de todas las variables. 
+
+
+#### 7. Realicen los gráficos correspondientes a la rotación Varimax y quartimax de los datos e interpreten en equipo los resultados.
 
 ```{r, fig.width=10, fig.height=7}
 modelo1V = fa(M, nfactors = 2, rotate = "varimax", fm = "mle") 
 biplot.psych(modelo1V, main="Rotación Varimax", sub="Método MLE", col=c("gray","red"))
 fa.diagram(modelo1V, main="Rotación Varimax, Método MLE")
-```
-
-```{r}
 print(modelo1V$loadings, cut=0.3)
+
+modelo1Q <- fa(M, nfactors = 2, rotate = "quartimax", fm = "mle")
+biplot.psych(modelo1Q, main = "Rotación Quartimax", sub = "Método MLE", col = c("gray","red"))
+fa.diagram(modelo1Q, main = "Rotación Quartimax, Método MLE")
+print(modelo1Q$loadings, cut = 0.3)
+
+modelo2V <- fa(M, nfactors = 2, rotate = "varimax",   fm = "minres")
+biplot.psych(modelo2V, main="Rotación Varimax", sub="Método Minres", col=c("gray","red"))
+fa.diagram(modelo2V, main="Rotación Varimax, Método Minres")
+print(modelo2V$loadings, cut = 0.3)
+
+modelo2Q <- fa(M, nfactors = 2, rotate = "quartimax", fm = "minres")
+biplot.psych(modelo2Q, main = "Rotación Quartimax", sub = "Método Minres", col = c("gray","red"))
+fa.diagram(modelo2Q, main = "Rotación Quartimax, Método Minres")
+print(modelo2Q$loadings, cut = 0.3)
 ```
 
-```{r}
-modelo1V = fa(M, nfactors = 2, rotate = "varimax", fm = "mle",  scores = "Bartlett") #scores = c("regression", "Bartlett", "tenBerge") por default es "regression"
-```
-
-```{r}
-fa.diagram(modelo1V)
-```
+Los resultados son casi idénticos, porque con solo 2 factores una rotación ortogonal es apenas un giro de ángulo. Las comunalidades y la varianza total no cambian (70.7% en MLE, 75.6% en minres). La diferencia es solo cómo se reparte la varianza entre factores. Varimax tiende a equilibrar las cargas entre factores, y Quartimax concentra más en F1, como se ve en las cargas de Proteinas (−0.49 con Varimax y −0.55 con Quartimax en MLE). Además, ML1 Y ML2 cambian de variables en MLE en sus gráficas de Varimax y Quartimax, así como también Oxigeno se cambia a MR2 en el Varimax de Minres.
 
 
+#### 8. ¿Qué pueden concluir? ¿Resultó razonable para este caso el modelo de análisis factorial? ¿Cuál modelo resulta más convincente? Expliquen.
+
+Sí es razonable el modelo de análisis factorial, aunque con ciertos detalles. Bartlett es significativo, Cattell y el análisis paralelo coinciden en 2 factores, los 2 factores explican gran cantidad de la varianza, y la estructura es interpretable como productividad (tamaño y proteínas) y hábitat (temperatura y oxígeno). Sin embargo, el KMO global es 0.63, apenas aceptable, y el de Temperatura es 0.41, así como también las variables Ln son transformaciones de las originales. Eso infla el Factor 1 de forma artificial: en la práctica hay 4 variables que miden 2 cosas, tamaño y proteínas. Una reespecificación más limpia sería usar solo las variables originales o solo las logarítmicas.
+
+Con respecto a cuál modelo es más convincente, este debe ser el de mínimo residuo, ya que explica más varianza (76\% frente a 71\%) y tiene un residuo menor (RMSR 0.03 frente a 0.06); además, representa mejor a Temperatura (comunalidad 0.85 frente a 0.40) y da una estructura más simple en F2. Aun así, ningún modelo alcanza un ajuste aceptable por RMSEA, por lo que la conclusión es que 2 factores resumen bien la estructura general, pero el modelo no es completamente satisfactorio.
 
 
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini y Claude
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, así como también en la redacción y guía en las interpretaciones
+
+(3) Secciones donde se utilizó: Código en el inciso 7 para las gráficas, así como también ayuda en redacció, formato e inetrpretación a lo largo del documento.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
 
 

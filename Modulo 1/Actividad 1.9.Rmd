@@ -1,0 +1,291 @@
+---
+title: "Actividad 1.9 Conglomerados jerárquicos"
+author: "Lucero Díaz"
+date: "2026-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+library(ggplot2)
+library(factoextra)
+```
+
+## Problema 1
+
+A partir de la siguiente tabla de distancias, hallar el dendrograma aplicando dos métodos jerárquicos con el método del promedio. Indica cuál es el número óptimo de aglomerados que se crean.
+
+```{r}
+Mpre = matrix(c(0,1,5,8.5,7.2, 0,0, 4.5, 7.8, 6.7, 0, 0, 0, 3.6, 2.2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0), ncol = 5) # complete los datos
+M = Mpre + t(Mpre)
+M
+```
+
+```{r}
+d = as.dist(M)  # Es necesario definir como distancia la matriz simétrica inicial.
+J = hclust(d, method = "average")   # con names(J) puede conocer las variables con información del análisis clúster. Con help("hclust") puede ver las opciones de method. 
+plot(J, hang = -1, lwd = 2, col = "blue", main = "Dendrograma de conglomerados (Average Linkage)", sub = "objetos", xlab = "n",ylab = c("distancia"))
+```
+
+Se muestra el dendograma de conglomerados con el método de Average Linkage. La distancia de fusión donde k=2 es mayor a 6, la distancia de fusión de k=3 es cercana a 3, y de ahí en adelante las distancias disminuyen mientras la cantidad k de grupos crece.
+
+```{r}
+fviz_nbclust(M, FUNcluster = kmeans, method = "wss", k.max = 4)   #explore en ayuda sus diversas opciones.
+```
+
+Se observa que la cantidad de clusters óptimos es 2. Esto es así ya que en el dendograma se pueden diferenciar de manera sencilla dos grupos principales {1, 2} y {3, 4, 5}, al estos tener una mayor distancia entre sí comparado con otros casos con una mayor cantidad de grupos (distancia de fusión donde k=2, la cual es mayor a 6). Además, en la gráfica de arriba se observa una gran disminución en la dispersión interna de los clusters, y desde esta cantidad en adelante no hay una disminución muy relevante.
+
+
+```{r}
+d = as.dist(M)  # Es necesario definir como distancia la matriz simétrica inicial.
+J = hclust(d, method = "complete")   # con names(J) puede conocer las variables con información del análisis clúster. Con help("hclust") puede ver las opciones de method. 
+plot(J, hang = -1, lwd = 2, col = "blue", main = "Dendrograma de conglomerados (Complete Linkage)", sub = "objetos", xlab = "n",ylab = c("distancia"))
+```
+
+Ahora se utiliza el método del vecino más lejano (complete linkage). La mayor diferencia existente entre este dendograma y el anterior es que la distancia de fusión con k=2 es mayor a 8 por ejemplo, y mientras k crece se observa la tendencia donde las distancias de fusión del segundo dendograma tienen valores más grandes respecto a las distancias de fusión del primer dendograma.
+
+
+## Problema 2
+
+La base de datos iris en R almacena datos de las características de 3 especies de Lilis: Setosa, Versicolor y Virginica. Realiza un análisis Clouster para determinar qué tan bien están clasificadas las flores en su especie.
+
+```{r}
+data(iris)
+```
+
+#### A. Haz un leve análisis descriptivo para cada variable por especie: media, desviación estándar, diagramas de caja y bigote
+
+```{r, fig.width=12, fig.height=7, dpi=300, fig.align='center', out.width='100%'}
+medias_especie <- aggregate(. ~ Species, data = iris, FUN = mean)
+cat("Medias por especie \n")
+print(medias_especie)
+
+sd_especie <- aggregate(. ~ Species, data = iris, FUN = sd)
+cat("\nDesviación estándar por especie \n")
+print(sd_especie)
+
+par(mfrow = c(2, 2)) # Matriz 2x2 para ver los 4 gráficos juntos
+boxplot(Sepal.Length ~ Species, data = iris, main = "Largo del Sépalo", col = "lightcyan")
+boxplot(Sepal.Width ~ Species, data = iris, main = "Ancho del Sépalo", col = "lightgreen")
+boxplot(Petal.Length ~ Species, data = iris, main = "Largo del Pétalo", col = "pink")
+boxplot(Petal.Width ~ Species, data = iris, main = "Ancho del Pétalo", col = "lavender")
+par(mfrow = c(1, 1)) # Restaurar configuración gráfica original
+```
+
+Podemos observar que las distribuciones del largo del sépalo, largo del pétalo y ancho del pétalo tienen características similares: las distribuciones de la setosa suelen ser más estrechas y tener valores más pequeños comparada con las otras dos categorías; mientras que se sigue un orden ascendente tanto en el rango de la distribución como en los valores de las 3 variables, donde la setosa es la categoría más pequeña en ambos aspectos, el versicolor ocupa el puesto medio y la virginica es la categoría con mayor rango de distribución y un valor mayor en las variables. El ancho del sépalo es la única variable que difiere de esta tendencia, donde la setosa es la categoría con valores más grandes en la variable, luego le sigue la virginica y finalmente el versicolor; también las 3 distribuciones tienen rangos similares. Además, a comparación de las otras variables, en el ancho del sépalo las medias de las 3 categorías se encuentran más cercanas entre sí.
+
+
+#### B. Realiza dos análisis clouster jerárquicos usando dos distintas distancias y métodos de aglomeración.
+
+**Método 1: Distancia Euclídea + Método de Ward**
+
+Para el primer método, elegiremos a como distancia la euclídea y como método el de Ward.
+
+```{r}
+dist_euc <- dist(iris[, 1:4], method = "euclidean")
+hc1 <- hclust(dist_euc, method = "ward.D2")
+plot(hc1, main = "Dendrograma 1: Distancia Euclídea + Método de Ward", sub = "objetos", xlab = "n", ylab = c("distancia"))
+rect.hclust(hc1, k = 3, border = "red")
+```
+
+Observamos como se delimitan los 3 grupos, los cuales surgen oficialmente en una distancia un poco mayor a 10.
+
+```{r}
+grupo1 <- cutree(hc1, k = 3)
+Resultado1 <- cbind(iris, grupo = grupo1)
+```
+
+El comando anterior clasifica en qué grupo fueron elegidos cada observación en la base de datos.
+
+```{r}
+print(tail(hc1$height, 10))
+```
+
+Observamos cada una de las distancias de fusión para cada k grupos, con $k \in {2, 3, ..., 11}$.
+
+```{r}
+# Tomar las últimas 5 alturas (fusiones finales)
+ultimas_alturas <- tail(hc1$height, 5)
+nombres_pasos <- paste0("k = ", 6:2)
+
+# Gráfico de barras
+bp <- barplot(ultimas_alturas, names.arg = nombres_pasos,
+              col = c(rep("skyblue", 3), "orange", "darkred"),
+              main = "Distancias entre Grupos en los Últimos Pasos de Aglomeración",
+              ylab = "Distancia de Fusión (height)",
+              xlab = "Número de Grupos Resultantes")
+
+# Agregar los valores exactos encima de cada barra
+text(bp, ultimas_alturas + 0.5, labels = round(ultimas_alturas, 2), pos = 3, cex = 0.9)
+```
+
+Aquí se grafica las distancias vistas anteriormente, pero en forma de gráfico de barras y especificándonos el valor de k y la distancia de fusión en la que se obtiene esa cantidad de grupos en el dendograma. Esta únicamente tiene valores de k de 2 a 6.
+
+```{r}
+# Calcular el centroide (punto medio) de los 3 grupos
+centroides <- aggregate(iris[, 1:4], by = list(Grupo = grupo1), FUN = mean)
+rownames(centroides) <- paste("Grupo", centroides$Grupo)
+centroides <- centroides[, -1] # Quitar la columna de etiquetas
+
+# Calcular la matriz de distancias entre los 3 centroides
+dist_centroides <- dist(centroides, method = "euclidean")
+matriz_dist <- as.matrix(dist_centroides)
+
+# Mostrar la matriz de distancias redondeada
+print(round(matriz_dist, 3))
+```
+
+Finalmente, también incluimos la distancia euclídea de cada uno de los centroides hacia los demás. Observamos como los centroides más cercanos son los de los grupos 2 y 3 y los más lejanos son los de los grupos 1 y 3.
+
+```{r}
+library(cluster)
+
+# Gráfico de elipses de separación entre grupos
+clusplot(iris[, 1:4], grupo1, 
+         color = TRUE,          # Diferenciar por colores
+         shade = TRUE,          # Sombrear los grupos
+         labels = 2,            # Etiquetar puntos
+         lines = 0,             # Sin líneas entre puntos
+         main = "Distancia Espacial entre los 3 Grupos Formados",
+         xlab = "Componente Principal 1", 
+         ylab = "Componente Principal 2")
+```
+
+Finalmente observamos los 3 grupos en un plano con los primeros dos componentes principales como ejes. Ambos componentes explican una varianza acumulada de 95.81\%. Observamos algo de traslape entre los grupos 2 y 3, pero exceptuando esto los grupos se observan bien delimitados.
+
+```{r}
+cat("Método 1: Tabla de Clasificación \n")
+tabla1 <- table(Especie_Real = iris$Species, Cluster = grupo1)
+print(tabla1)
+```
+
+En la tabla de clasificación, observamos que los datos que están originalmente clasificados como setosa están totalmente en el grupo 1; los datos que son de la categoría versicolor se encuentran en su mayoría en el grupo 2, a excepción de 1 dato que está en el grupo 3; finalmente, las observaciones de la categoría virginica son los que varían más entre grupos, donde 35 están en el grupo 3 y 15 están en el grupo 2.
+
+```{r}
+cat("Método 1: Medias por Grupo \n")
+medias_m1 <- aggregate(. ~ grupo, data = Resultado1[, -5], FUN = mean)
+print(medias_m1)
+```
+
+Comparando las medias de cada una de las variables por grupo, notamos cómo el grupo 1 es prácticamente idéntico a las métricas de la setosa; mientras que se observa un cambio notorio entre las medias de los grupos 2 y 3 con sus respectivas categorías, versicolor y virginica. El grupo 2 está cargado con más datos, mientras que el grupo 3 es el que menos datos tiene; además, en el grupo 3 se observa como las medias son mayores a comparación de los datos clasificados como virginica, y entre el grupo 2 y la categoría versicolor las variables de largo y ancho del sépalo son mayores en versicolor, y en el resto de las variables son mayores en el grupo 2.
+
+**Método 2: Distancia Manhattan + Complete Linkage**
+
+Ahora utilizaremos distancia de Manhattan y el método de Complete Linkage para hacer grupos jerárquicos con nuestros datos.
+
+```{r}
+# Matriz de distancia y clustering
+dist_man <- dist(iris[, 1:4], method = "manhattan")
+hc2 <- hclust(dist_man, method = "complete")
+
+# A. Dendrograma y delimitación de k = 3 grupos
+plot(hc2, main = "Dendrograma 2: Distancia Manhattan + Complete Linkage",
+     sub = "objetos", xlab = "n", ylab = c("distancia"))
+rect.hclust(hc2, k = 3, border = "blue")
+```
+
+Vemos que el dendograma y la distribución de los grupos tienen una forma un poco distinta respecto al primer método. La distancia de fusión de 3 grupos es cercana a 9.
+
+```{r}
+grupo2 <- cutree(hc2, k = 3)
+Resultado2 <- cbind(iris, grupo = grupo2)
+```
+
+Se clasifica en qué grupo fueron elegidos cada observación en la base de datos.
+
+```{r}
+cat("Método 2: Alturas de las últimas fusiones \n")
+print(tail(hc2$height, 10))
+```
+
+Se observan las distancias de fusión para k grupos, con $k \in {2, 3, ..., 11}$. Observamos como las distancias de fusión están más compactas entre sí a comparación de las distancias del primer método.
+
+```{r}
+# Tomar las últimas 5 alturas (fusiones finales)
+ultimas_alturas <- tail(hc2$height, 5)
+nombres_pasos <- paste0("k = ", 6:2)
+
+# Gráfico de barras
+bp <- barplot(ultimas_alturas, names.arg = nombres_pasos,
+              col = c(rep("skyblue", 3), "orange", "darkred"),
+              main = "Distancias entre Grupos en los Últimos Pasos de Aglomeración",
+              ylab = "Distancia de Fusión (height)",
+              xlab = "Número de Grupos Resultantes")
+
+# Agregar los valores exactos encima de cada barra
+text(bp, ultimas_alturas + 0.5, labels = round(ultimas_alturas, 2), pos = 3, cex = 0.9)
+```
+
+La gráfica de barras nos afirma la distancia de fusión de k=3: 8.7. Esta distancia es considerablemente menor a la distancia de fusión del primer método (12.3).
+
+```{r}
+# 1. Calcular el centroide (punto medio) de los 3 grupos
+centroides <- aggregate(iris[, 1:4], by = list(Grupo = grupo2), FUN = mean)
+rownames(centroides) <- paste("Grupo", centroides$Grupo)
+centroides <- centroides[, -1] # Quitar la columna de etiquetas
+
+# 2. Calcular la matriz de distancias entre los 3 centroides
+dist_centroides <- dist(centroides, method = "manhattan")
+matriz_dist <- as.matrix(dist_centroides)
+
+# Mostrar la matriz de distancias redondeada
+print(round(matriz_dist, 3))
+```
+
+Utilizando la distancia de Manhattan, se sigue manteniendo que los centroides más cercanos son los del grupo 2 y 3, y los centroides más lejanos son los del grupo 1 y 3. Notamos también que las distancias de este método son más grandes a comparación del primer método.
+
+```{r}
+library(cluster)
+
+# Gráfico de elipses de separación entre grupos
+clusplot(iris[, 1:4], grupo2, 
+         color = TRUE,          # Diferenciar por colores
+         shade = TRUE,          # Sombrear los grupos
+         labels = 2,            # Etiquetar puntos
+         lines = 0,             # Sin líneas entre puntos
+         main = "Distancia Espacial entre los 3 Grupos Formados",
+         xlab = "Componente Principal 1", 
+         ylab = "Componente Principal 2")
+```
+
+La gráfica de distancia espacial no tiene mucha diferencia a la del primer método.
+
+```{r}
+cat("Método 2: Tabla de Clasificación \n")
+tabla2 <- table(Especie_Real = iris$Species, Cluster = grupo2)
+print(tabla2)
+```
+
+A diferencia del método anterior, las observaciones de setosa y versicolor se encuentran por completo en un único grupo para cada categoría (grupo 1 y 2). Mientras que en el caso de virginica, los datos de esta categoría se dividen entre dos grupos: grupo 3, con 34 observaciones, y grupo 2 con 16 observaciones. 
+
+```{r}
+cat("Método 2: Medias por Grupo \n")
+medias_m2 <- aggregate(. ~ grupo, data = Resultado2[, -5], FUN = mean)
+print(medias_m2)
+```
+
+El grupo 1 y la setosa tienen medias idénticas. Mientras que el grupo 2 y 3 de nuevo presentan diferencias comparándolos con sus respectivas categorías: versicolor y virginica. El grupo 3 tiene medias mayores a comparación de las medias de virginica. Y el grupo 2 tiene medias mayores a versicolor en la mayoría de las variables, a excepción de la variable del Ancho del Sépalo donde la media de versicolor es mayor a la de este grupo. El grupo 2 tiene 66 datos y el grupo 3 tiene 34, difiriendo por una observación a comparación de los grupos 2 y 3 del primer método.
+
+
+#### Interpreta el dendograma obtenido y concluye para los dos métodos. Indica cuál es mejor y por qué.
+
+Ambos métodos cometen 16 errores de clasificación, todos en la frontera versicolor/virginica, y ambos separan setosa perfectamente. El Método 2 clasifica correctamente a todas las versicolor, mientras que el Método 1 reparte el error entre ambas especies. Sin embargo, Ward es preferible por fundamento teórico: minimiza la varianza intragrupo y es más adecuado para variables continuas con la distancia euclídea (Método 1). Dado el empate en errores, la elección de basarse en este criterio metodológico y no en una diferencia clara de desempeño (al menos en este caso).
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini y Claude
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, así como también en la redacción y guía en las interpretaciones.
+
+(3) Secciones donde se utilizó: En el Problema 2, específicamente para hacer diferentes gráficos comparando la distancias entre cada grupo de los métodos de conglomeraciones (distancias de fusión, distancias entre centroides, etc.). Claude se utilizó específicamente para dar una guía a la interpretación final acerca de cuál de los dos métodos implementados era mejor, y así asegurarnos de conseguir la respuesta más acertada.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+

@@ -1,0 +1,214 @@
+---
+title: "Actividad 1.8 Análisis Factorial II"
+author: "Lucero Díaz"
+date: "2026-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Los datos se refieren al consumo de combustible del ciclo urbano en millas por galón (mpg) y 8 atributos(variables) de los automóviles. Los datos son los siguientes:
+
+    1. mpg: millas por galón
+    2. cilindros: número de cilindros
+    3. mileage: número de millas recorridas
+    4. horsepower: caballos de fuerza
+    5. weight: peso en libras
+    6. acceleration: aceleración
+    7. model_year   
+    8. origin: nacional, extrajero, desconocido
+    9. car name: marca, tipo
+
+#### 1. Lea los datos y asegúrese que están límpios.
+
+```{r}
+datos <- read.csv("C:/Users/ludio/Downloads/cars93.csv")
+datos_limpios <- na.omit(datos)
+```
+
+
+#### 2. Reduzca la matriz de datos original a otra sólo de variables numéricas.
+
+```{r}
+M1 <- datos_limpios[, 1:6]
+```
+
+
+#### 3. Verifique si se cumple que los datos provienen de una población normal multivariada e interprete los resultados.
+
+```{r}
+library(MVN)
+result = mvn(M1, mvn="mardia")
+result
+```
+
+El test de mardia nos muestra que no se cumple normalidad ni de forma univariada ni multivariada. Por lo tanto, este hecho hay que tenerlo en cuenta al momento de realizar el análisis factorial de próximos pasos.
+
+
+#### 4a. Correlaciones por pares.
+
+```{r}
+library(psych)
+Corr <- corr.test(M1, alpha = 0.01)
+
+cat("Matriz de correlación \n")
+print(Corr$r)
+
+cat("\nMatriz de p-values \n")
+print(Corr$p)
+```
+
+Por la matriz de p-values, podemos observar que las correlaciones entre todos los posibles pares de variables son estadísticamente significativas. cilindros, mileage, horsepower y weight forman un bloque con correlaciones entre 0.84 y 0.95. mpg se correlaciona negativamente con ellas estas variables (de −0.78 a −0.83) y acceleration es la variable con correlaciones más débiles (entre 0.42 y 0.69).
+
+
+#### 4b.  Aplique la prueba de Kaiser-Meyer-Olkin  (KMO) para correlaciones y compare el estadístico de prueba resultante con la escala siguiente y concluya.
+
+```{r}
+K = KMO(Corr$r)
+cat("El KMO es: ", K$MSA, "\n")
+K
+```
+
+```{r}
+library(performance)
+check_sphericity_bartlett(M1)
+
+b <- check_sphericity_bartlett(M1)
+cat("\n--- RESULTADOS BARTLETT ---\n")
+cat("Chi-cuadrado:", b$chisq, "\n")
+cat("Grados de libertad (dof):", b$dof, "\n")
+cat("Valor p:", b$p, "\n")
+```
+
+El coeficiente de KMO general es de 0.85, y la mayoría de los valores KMO de cada variables son de >80, lo que clasifica a las variables desde meritorias hasta maravillosas. La única variable que no cumple esto es acceleration, con un valor de 0.69 (mediocre). A pesar de esto, el valor general de KMO nos indica que sí es viable realizar un análisis factorial con estos datos, respaldado también por la prueba de Bartlett donde el p-value es menor a 0.05.
+
+
+#### 5. Realicen un análisis de componentes principales y describan la proporción de varianza total explicada por cada componente. 
+
+```{r}
+summary(prcomp(M1, scale = TRUE))
+```
+
+El primer componente principal (CP1) ya explica el 79.8\% de la varianza total, y junto con el segundo componente principal (CP2) se logra una varianza acumulada de 91.95\%. Los demás CP agregan de poco a poco la varianza faltante para sumar la varianza total, por lo que podemos considerar a los primeros 2 CP suficientes para explicar la varianza de los datos.
+
+
+#### 6. Con la ayuda del gráfico Scree y la tabla de distribución de la proporción acumulada de la varianza del punto anterior, decidan cuántos compontes son recomendables en este caso y que expliquen una mayoría de la varianza. 
+
+```{r}
+scree(Corr$r)
+```
+
+Observamos como el codo se muestra en el CP2. A pesar de que el criterio de Kaiser nos indica que solo nos quedemos con el CP1; no obstante, tomaremos los primeros dos componentes principales puesto que ambos componentes explican el 92\% de la varianza total.
+
+
+#### 7. Realizar un análisis factorial según el método de máxima verosimilitud o componentes principales que convenga, así como dos modelos de rotación.
+
+```{r}
+fa_o <- fa(M1, nfactors = 2, rotate = "none",      fm = "minres")
+fa_q <- fa(M1, nfactors = 2, rotate = "quartimax", fm = "minres")
+fa_v <- fa(M1, nfactors = 2, rotate = "varimax",   fm = "minres")
+
+biPlot(fa_o, main = "Sin rotación")
+fa.diagram(fa_o, main = "Sin rotación, Método Minres")
+print(fa_o, cutoff = 0.3)
+
+biPlot(fa_q, main = "Rotación Quartimax")
+fa.diagram(fa_q, main = "Rotación Quartimax, Método Minres")
+print(fa_q, cutoff = 0.3)
+
+biPlot(fa_v, main = "Rotación Varimax")
+fa.diagram(fa_v, main = "Rotación Varimax, Método Minres")
+print(fa_v, cutoff = 0.3)
+```
+
+Considerando que los datos no están distribuidos de manera normal, utilizaremos el método de mínimos residuos:
+
+**Sin rotación**. El primer factor es general: todas las variables cargan alto en él, y explica 78\% de la varianza. El segundo agrega 12\%, para un total de 90\%. El problema es que acceleration carga en los dos factores (−0.65 y 0.76), así que el segundo factor no se interpreta con claridad.
+
+**Con rotación**. Las dos rotaciones explican el 90\% de la varianza en total, al igual que el análisis factorial sin rotación. Con quartimax, F1 explica 76\% y F2 14\%; con varimax, 66\% y 24\%. Los factores de ambas rotaciones se explican prácticamente igual:
+
+* F1 = tamaño y potencia del motor (cilindros, mileage, weight y horsepower, con mpg en sentido contrario).
+
+* F2 = aceleración, casi solo acceleration (0.86 en quartimax, −0.97 en varimax).
+
+
+#### 8. Escriban las composiciónes lineales de las variables en función de los factores, según su análisis. Interprete factores e identifique variables que más influyen.
+
+Con las variables estandarizadas ($Z$) y las cargas del análisis factorial por mínimos residuos con dos factores, cada variable se escribe como combinación lineal de los factores más un término único ($e$).
+
+**Sin rotación**
+
+$$
+\begin{aligned}
+Z_{mpg} &= -0.83\,F_1 - 0.15\,F_2 + e_1\\
+Z_{cilindros} &= 0.93\,F_1 + 0.13\,F_2 + e_2\\
+Z_{mileage} &= 0.97\,F_1 + 0.11\,F_2 + e_3\\
+Z_{horsepower} &= 0.94\,F_1 - 0.10\,F_2 + e_4\\
+Z_{weight} &= 0.94\,F_1 + 0.25\,F_2 + e_5\\
+Z_{acceleration} &= -0.65\,F_1 + 0.76\,F_2 + e_6
+\end{aligned}
+$$
+
+**Rotación Quartimax**
+
+$$
+\begin{aligned}
+Z_{mpg} &= -0.84\,F_1 + 0.01\,F_2 + e_1\\
+Z_{cilindros} &= 0.94\,F_1 - 0.04\,F_2 + e_2\\
+Z_{mileage} &= 0.98\,F_1 - 0.07\,F_2 + e_3\\
+Z_{horsepower} &= 0.91\,F_1 - 0.27\,F_2 + e_4\\
+Z_{weight} &= 0.97\,F_1 + 0.08\,F_2 + e_5\\
+Z_{acceleration} &= -0.50\,F_1 + 0.86\,F_2 + e_6
+\end{aligned}
+$$
+
+**Rotación Varimax**
+
+$$
+\begin{aligned}
+Z_{mpg} &= -0.81\,F_1 - 0.23\,F_2 + e_1\\
+Z_{cilindros} &= 0.89\,F_1 + 0.29\,F_2 + e_2\\
+Z_{mileage} &= 0.92\,F_1 + 0.32\,F_2 + e_3\\
+Z_{horsepower} &= 0.80\,F_1 + 0.50\,F_2 + e_4\\
+Z_{weight} &= 0.96\,F_1 + 0.18\,F_2 + e_5\\
+Z_{acceleration} &= -0.25\,F_1 - 0.97\,F_2 + e_6
+\end{aligned}
+$$
+
+Revisando los 3 modelos, podemos llegar a un consenso acerca de la interpretación de cada uno de los dos factores:
+
+* **F1 es “tamaño y potencia del motor”**. Influyen sobre todo mileage, weight, cilindros y horsepower. mpg tiene signo negativo, es decir, autos más grandes y potentes rinden menos millas por galón.
+
+* **F2 es “aceleración”**. Solo acceleration pesa alto en este factor. En varimax, horsepower también carga en F2 (0.50).
+
+
+#### 9. ¿Qué diferencias esenciales encuentran entre Componentes principales y Análisis factorial?
+
+Hay diferencias notables entre estos dos métodos en diferentes aspectos: el PCA resume toda la varianza total con combinaciones de las variables; el AF explica solo la varianza compartida mediante factores latentes. En el PCA el componente es función de las variables; en el AF la variable es función de los factores más un error propio (unicidad). En el PCA da una solución única; el AF admite rotaciones (quartimax, varimax) que facilitan nombrar los factores. Y con respecto a los supuestos, el PCA no necesita normalidad para describir los datos; el AF por máxima verosimilitud sí la supone.
+
+Específicamente en este caso, estas son las diferencias en resultados más relevantes:
+
+* Dos componentes principales explican 92\% de la varianza total; dos factores explican el 90\%. El AF explica un poco menos porque solo cuenta la varianza común y deja fuera la única.
+
+* Con el PCA no se necesita una rotación para describir los datos, pero tampoco se obtiene una interpretación en términos de factores latentes.
+
+* La diferencia práctica es que, sin rotar, el segundo factor mezcla a `acceleration` con el resto; al rotar, los factores se vuelven fáciles de interpretar y nombrar.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Claude
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea, así como también en la redacción, formato y guía en las interpretaciones.
+
+(3) Secciones donde se utilizó: Hubo asistencia de IA en el código del inciso 7, así como también se dio formato a varios elementos del documento (listas, ecuaciones, etc.) y se proporcionó una guía en la interpretación de resultados en varias secciones (mayormente del inciso 6 en adelante).
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+

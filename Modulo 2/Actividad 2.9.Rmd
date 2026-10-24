@@ -1,0 +1,151 @@
+---
+title: "Actividad 2.9 Regresión Logistica Multiple"
+author: "Lucero Díaz"
+date: "2026-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### a. Carga los datos y las librerías
+
+```{r}
+# Load dataset
+data(mtcars)
+
+# Convert 'am' to factor (0 = auto, 1 = manual)
+mtcars$am <- factor(mtcars$am, labels = c("Automatic", "Manual"))
+```
+
+
+#### b. Explora los datos
+
+```{r}
+# Inspect the dataset
+str(mtcars)
+summary(mtcars)
+table(mtcars$am)
+```
+
+* ¿Cuántos carros son automáticos y cuántos son manuales?
+
+En el dataset existen 19 carros automáticos y 13 carros manuales.
+
+* ¿Qué variables consideras, a priori, que influenciarían el tipo de transmisión?
+
+* `mpg` (Millas por galón): Los autos manuales tienden a ser más eficientes en consumo de combustible.
+
+* `wt` (Peso en miles de libras): Los vehículos más pesados suelen equiparse con transmisiones automáticas para facilitar su conducción.
+
+* `hp` (Caballos de fuerza): Los vehículos con mayor orientación deportiva o alta potencia frecuentemente incluyen transmisión manual.
+
+* `qsec` (Tiempo en 1/4 de milla): Relacionado con la capacidad de aceleración y rendimiento del vehículo.
+
+
+#### c. Ajusta una Regresión Logística Múltiple
+
+```{r}
+model1 <- glm(am ~ mpg + hp + wt, data = mtcars, family = "binomial")
+summary(model1)
+```
+
+* ¿Cuáles son los coeficientes estimados?
+
+Para esta regresión logística múltiple estamos considerando 3 variables independientes: mpg, hp y wt. Y los coeficientes estimados para cada una de estas variables son: 1.229, 0.084 y -6.955. Así como también el intercepto tiene coeficiente de -15.721.
+
+* ¿Qué predictores son estadísticamente significativos ($p < 0.05$)?
+
+El único predictor que es estadísticamente significativo es wt, ya que es el único con p-value menor a 0.05.
+
+* Interpreta el coeficiente de mpg.
+
+Manteniendo constantes el peso (`wt`) y los caballos de fuerza (`hp`), por cada milla por galón adicional en `mpg`, el *log-odds* (logaritmo de la razón de probabilidades) de que el auto sea manual aumenta en **$1.229$**. Así como también, calculando $e^{1.229} \approx 3.4188$, por cada unidad que incrementa el rendimiento de combustible (`mpg`), la probabilidad relativa (odds) de que el vehículo tenga transmisión manual se multiplica por **$3.42$ veces**.
+
+
+#### d. Evaluación del modelo
+
+* ¿Cuánta desviación es reducida del modelo nulo?
+
+   * **Desviación Nula (*Null Deviance*):** $43.230$ (con 31 grados de libertad).
+   
+   * **Desviación Residual (*Residual Deviance*):** $8.766$ (con 28 grados de libertad).
+   
+   * **Desviación reducida:** $43.230 - 8.766 = \mathbf{34.464}$.
+
+* ¿Es AIC (Criterio de información de Akaike) una buena herramienta para comparar modelos? ¿Por qué?
+
+Sí, es una herramienta clave. El AIC penaliza la complejidad del modelo (número de parámetros) al evaluar la bondad de ajuste mediante la verosimilitud ($AIC = 2k - 2\ln(L)$. Esto evita sobreajuste del modelo, favoreciendo la parsimonia (modelos más simples con alta capacidad explicativa).
+
+
+#### e. Predice probabilidades y f. Classifica con un umbral de 0.5
+
+```{r}
+predicciones_prob <- predict(model1, type = "response")
+predicciones <- ifelse(predicciones_prob >= 0.5, "Manual", "Automatic")
+reales <- mtcars$am
+
+matriz_confusion <- table(reales, predicciones)
+print(matriz_confusion)
+cat("\n")
+accuracy <- sum(diag(matriz_confusion)) / sum(matriz_confusion)
+print(accuracy)
+```
+
+* ¿Cuál es el accuracy del modelo?
+
+EL accuracy del modelo termina siendo 93.75\%.
+
+* ¿Existen falsos positivos/negativos?
+
+Sí, se llegaron a clasificar erróneamente dos datos: un falso positivo y un falso negativo.
+
+
+#### g. Añadir más predictores.
+
+```{r}
+model2 <- glm(am ~ mpg + hp + wt + qsec + cyl, data = mtcars, family = "binomial")
+summary(model2)
+AIC(model2)
+```
+
+```{r}
+vars <- c("am", "mpg", "hp", "wt", "qsec", "cyl")
+
+data(mtcars)
+sub_mtcars <- mtcars[, vars]
+
+matriz_cor <- round(cor(sub_mtcars), 3)
+
+# Visualización con la librería corrplot
+library(corrplot)
+corrplot(matriz_cor, method = "color", addCoef.col = "black", number.cex = 0.7)
+
+library(car)
+vif_valores <- vif(model2)
+print(vif_valores)
+```
+
+* ¿Añadir más predictores mejora el AIC?
+
+Sí, numéricamente disminuye de $16.77$ a $12.00$, lo cual parecería una mejora formal en AIC.
+
+* ¿Son todos estos necesarios?
+
+No, no todos son necesarios. Al agregar demasiados predictores correlacionados (`cyl` y `qsec`, con valores de VIF superiores a 20) en un conjunto de datos pequeño ($n=32$) hace que las estimaciones de los coeficientes se inflen de manera inestable y los errores estándar aumenten drásticamente (obteniendo p-values a $1.00$). Por lo tanto, no es conveniente mantener variables redundantes.
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de la tarea y en la interpretación de variables (significado de estas).
+
+(3) Secciones donde se utilizó: Ayuda en el código en los incisos e) y g), así como también interpretación en las variables del dataset (mayormente en el inciso b).
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.

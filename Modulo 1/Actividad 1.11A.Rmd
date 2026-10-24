@@ -1,0 +1,302 @@
+---
+title: "Actividad 1.11A Series de tiempo"
+author: "Lucero Díaz"
+date: "2026-10-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(knitr)
+library(ISLR2)
+library(MASS)
+library(class)
+library(e1071)
+library(car)
+library(lmtest)
+```
+
+```{r}
+# Carga de datos
+ventas_vec <- c(4.8, 4.1, 6.0, 6.5,
+                5.8, 5.2, 6.8, 7.4,
+                6.0, 5.6, 7.5, 7.8,
+                6.3, 5.9, 8.0, 8.4)
+
+ventas_ts <- ts(ventas_vec, start = c(1, 1), frequency = 4)
+t <- 1:length(ventas_vec)
+ventas_ts
+```
+
+#### Realiza el análisis de tendencia y estacionalidad:
+
+```{r, fig.width=12, fig.height=7, dpi=300, fig.align='center', out.width='100%'}
+par(mfrow = c(2, 1))
+plot(ventas_ts, type = "o", col = "blue", pch = 16,
+     main = "Ventas de Televisores (Año 1 - Año 4)",
+     xlab = "Año / Trimestre", ylab = "Ventas (miles)")
+grid()
+
+acf(ventas_ts, main = "Gráfico de Autocorrelación (ACF)")
+par(mfrow = c(1, 1))
+```
+
+La serie de tiempo no es estacionaria. Muestra una tendencia creciente mientras se avanza año con año, y un patrón de variación estacional repetitivo dentro de cada año. En todos los años se observa una caída recurrente en el segundo trimestre (mínimo anual) y un pico ascendente sostenido hacia el tercer y cuarto trimestre (máximo anual).
+
+Con respecto a la autocorrelación, el gráfico de autocorrelación muestra picos significativos cada 4 períodos ($k = 4, 8, 12$), confirmando la presencia de estacionalidad trimestral.
+
+Dado que la amplitud de la oscilación estacional se mantiene estable con el incremento de la tendencia, los modelos aditivos y multiplicativos son ambos aplicables. Para asegurarnos de elegir cuál es el modelo que más nos conviene, los aplicaremos a lo largo del trabajo.
+
+
+#### Calcula los índices estacionales y grafica la serie desestacionalizada.
+
+```{r}
+# Descomposición Aditiva y Multiplicativa
+decomp_add <- decompose(ventas_ts, type = "additive")
+decomp_mult <- decompose(ventas_ts, type = "multiplicative")
+
+indices_add <- decomp_add$figure
+indices_mult <- decomp_mult$figure
+
+# Serie Desestacionalizada
+y_des_add <- ventas_ts - rep(indices_add, 4)
+y_des_mult <- ventas_ts / rep(indices_mult, 4)
+
+# Tabla de Índices Estacionales
+tabla_indices <- data.frame(
+  Trimestre = paste("Trimestre", 1:4),
+  `Índice Aditivo` = round(indices_add, 4),
+  `Índice Multiplicativo` = round(indices_mult, 4)
+)
+
+kable(tabla_indices, caption = "Índices Estacionales Obtenidos", align = "c")
+```
+
+En el esquema Aditivo, la suma de los 4 índices es muy cercana a 0. Mientras que en el Multiplicativo, el promedio de los 4 índices se acerca más a 1. El trimestre 2 presenta la menor demanda relativa (un $16.36\%$ por debajo del promedio anual en el modelo multiplicativo). El trimestre 4 representa el pico de ventas (un $14.14\%$ por encima del promedio anual).
+
+```{r}
+plot(ventas_ts, col = "black", lwd = 2, ylab = "Ventas (miles)", 
+     main = "Serie Original vs Series Desestacionalizadas")
+lines(y_des_add, col = "red", lty = 2, lwd = 2)
+lines(y_des_mult, col = "blue", lty = 2, lwd = 2)
+grid()
+legend("topleft", legend = c("Original", "Desest. Aditiva", "Desest. Multiplicativa"),
+       col = c("black", "red", "blue"), lty = c(1, 2, 2), lwd = 2)
+```
+
+
+#### Analiza el modelo lineal de la tendencia
+
+```{r, fig.width=12, fig.height=7, dpi=300, fig.align='center', out.width='100%'}
+t2 <- t^2
+
+# Modelo 1: Aditivo Lineal
+fit_m1 <- lm(y_des_add ~ t)
+pred_m1 <- predict(fit_m1) + rep(indices_add, 4)
+
+# Modelo 2: Multiplicativo Lineal
+fit_m2 <- lm(y_des_mult ~ t)
+pred_m2 <- predict(fit_m2) * rep(indices_mult, 4)
+
+# Modelo 3: Aditivo Cuadrático
+fit_m3 <- lm(y_des_add ~ t + t2)
+pred_m3 <- predict(fit_m3) + rep(indices_add, 4)
+
+# Modelo 4: Multiplicativo Cuadrático
+fit_m4 <- lm(y_des_mult ~ t + t2)
+pred_m4 <- predict(fit_m4) * rep(indices_mult, 4)
+
+# Resumen del modelo lineal aditivo
+summary(fit_m1)
+
+# Análisis de residuos del modelo lineal aditivo
+par(mfrow = c(2, 2))
+plot(fit_m1)
+par(mfrow = c(1, 1))
+shapiro.test(residuals(fit_m1))
+dwtest(fit_m1)
+bptest(fit_m1)
+```
+
+
+Se ajusta la regresión de las ventas desestacionalizadas ($Y_{des}$) en función del tiempo ($t = 1, 2, \dots, 16$):
+
+$$\hat{Y}_{des} = \beta_0 + \beta_1 t$$
+
+Resultados Estadísticos (Modelo Lineal Aditivo):
+
+* Ecuación ajustada: $\hat{Y}_{des} = 5.13917 + 0.14613 \cdot t$
+
+* Significancia Global (Prueba F): $p\text{-value} < 0.05$. El modelo global es estadísticamente significativo con un coeficiente de determinación $R^2 = 0.932$.
+
+* Significancia Individual (Prueba t): Intercepto ($\beta_0 = 5.13917$): $t = 50.52$, $p < 0.0001$ (Muy Significativo). Pendiente ($\beta_1 = 0.14613$): $t = 13.89$, $p < 0.0001$ (Muy Significativo)
+
+**Análisis de Residuos:**
+
+* Normalidad (Shapiro-Wilk): $p > 0.05$. La hipótesis nula no se rechaza, por lo que los residuos se distribuyen de forma normal.
+
+* Autocorrelación (Durbin-Watson): $DW \approx 1.24$, $p < 0.05$, por lo que hay evidencia de autocorrelación en primer orden.
+
+* Homocedasticidad (Breusch-Pagan): $p > 0.05$, varianza constante de residuos.
+
+
+También mostraremos resultados del modelo lineal multiplicativo.
+
+```{r, fig.width=12, fig.height=7, dpi=300, fig.align='center', out.width='100%'}
+fit_lin_mult <- lm(y_des_mult ~ t)
+
+cat("\n=======================================================\n")
+cat("RESUMEN: MODELO LINEAL MULTIPLICATIVO\n")
+cat("=======================================================\n")
+print(summary(fit_lin_mult))
+
+# Pruebas sobre residuos
+res_lin <- residuals(fit_lin_mult)
+cat("\nPrueba de Normalidad (Shapiro-Wilk):\n")
+print(shapiro.test(res_lin))
+print(dwtest(fit_lin_mult))
+print(bptest(fit_lin_mult))
+
+par(mfrow = c(2, 2))
+plot(fit_lin_mult, main = "Residuos - Lineal Mult")
+par(mfrow = c(1, 1))
+```
+
+* Ecuación: $\hat{Y}_{des, mult} = 5.1080 + 0.1474 \cdot t$
+
+* Significancia Global: $p < 0.05$. El modelo global es altamente significativo.
+
+* Significancia Individual:Intercepto ($\beta_0 = 5.1080$): $p < 0.0001$ (Muy Significativo).Pendiente ($\beta_1 = 0.1474$): $p < 0.0001$ (Muy Significativo).
+
+**Análisis de Residuos:**
+
+* Normalidad (Shapiro-Wilk): $p > 0.05$. Los residuos se distribuyen de forma normal.
+
+* Autocorrelación (Durbin-Watson): $DW \approx 1.17$, $p < 0.05$, por lo que hay evidencia de autocorrelación al rechazar la hipótesis nula.
+
+* Homocedasticidad (Breusch-Pagan): $p > 0.05$, varianza constante de residuos.
+
+
+#### Calcula el CME y el EPAM (al menos) de la predicción de la serie de tiempo
+
+```{r}
+calc_cme <- function(y, y_hat) mean((y - y_hat)^2)
+calc_epam <- function(y, y_hat) mean(abs((y - y_hat) / y)) * 100
+
+tabla_errores <- data.frame(
+  Modelo = c("Aditivo Lineal", "Multiplicativo Lineal", "Aditivo Cuadrático", "Multiplicativo Cuadrático"),
+  CME = c(calc_cme(ventas_vec, pred_m1),
+          calc_cme(ventas_vec, pred_m2),
+          calc_cme(ventas_vec, pred_m3),
+          calc_cme(ventas_vec, pred_m4)),
+  EPAM_Porc = c(calc_epam(ventas_vec, pred_m1),
+                calc_epam(ventas_vec, pred_m2),
+                calc_epam(ventas_vec, pred_m3),
+                calc_epam(ventas_vec, pred_m4))
+)
+
+print("--- EVALUACIÓN DE MODELOS ---")
+print(tabla_errores)
+```
+
+De los 4 modelos observados, vemos como el modelo aditivo lineal es el que tiene los valores más grandes de CME y EPAM; mientras que el modelo multiplicativo cuadrático es el que tiene los menores valores en ambas métricas.
+
+#### Explora un mejor modelo, por ejemplo un modelo cuadrático, o cualquier otra transformación que consideres apropiada. Para ello transforma la variable ventas (recuerda que la regresión no lineal es una regresión lineal con una tranformación).
+
+Realizaremos el modeo cuadrático multiplicativo, ya que con este se obtuvieron los mejores resultados en el apartado anterior.
+ 
+```{r, fig.width=12, fig.height=7, dpi=300, fig.align='center', out.width='100%'}
+fit_quad_mult <- lm(y_des_mult ~ t + t2)
+
+cat("\n=======================================================\n")
+cat("RESUMEN: MODELO CUADRÁTICO MULTIPLICATIVO\n")
+cat("=======================================================\n")
+print(summary(fit_quad_mult))
+
+# Pruebas sobre residuos
+res_quad <- residuals(fit_quad_mult)
+cat("\nPrueba de Normalidad (Shapiro-Wilk):\n")
+print(shapiro.test(res_quad))
+print(dwtest(fit_quad_mult))
+print(bptest(fit_quad_mult))
+
+par(mfrow = c(2, 2))
+plot(fit_quad_mult, main = "Residuos - Cuadrático Mult")
+par(mfrow = c(1, 1))
+```
+
+* Ecuación: $\hat{Y}_{des, mult} = 4.7903 + 0.2533 \cdot t - 0.0062 \cdot t^2$
+
+* Significancia Global: $p < 0.05$. El modelo definitivamente es significativo.
+
+* Significancia Individual: Intercepto ($\beta_0 = 4.7903$): $p < 0.0001$ (Muy Significativo). Término lineal ($\beta_1 = 0.2533$): $p < 0.0001$ (Muy Significativo). Término cuadrático ($\beta_2 = -0.0062$): $p = 0.0204 < 0.05$ (Significativo).
+
+**Análisis de Residuos:**
+
+* Normalidad: Test Shapiro-Wilk $p = 0.6625 > 0.05$ (cumple supuesto de normalidad).
+
+*  Autocorrelación (Durbin-Watson): $DW \approx 1.81$, $p > 0.05$. A diferencia de los modelos lineales anteriores, aquí no se rechaza la hipótesis nula, por lo que no hay evidencia de autocorrelación.
+
+* Homocedasticidad (Breusch-Pagan): $p > 0.05$, así que se sigue una varianza constante de residuos.
+
+
+#### Concluye sobre el mejor modelo (debes haber probado al menos 3 modelos combinando: aditivo, multiplicativo, lineal, no lineal).
+
+El Modelo Multiplicativo Cuadrático es el modelo óptimo para esta serie de tiempo por las siguientes razones:
+
+* Presenta  el menor CME ($0.0219$) y el menor EPAM ($1.94\%$) entre todas las alternativas evaluadas.
+
+* El coeficiente del término cuadrático ($\beta_2 = -0.0062$) es estadísticamente significativo ($p = 0.0204$), lo que confirma que la tasa de crecimiento de las ventas se desacelera marginalmente en el tiempo.
+
+* Sus residuos satisfacen el supuesto de normalidad, homocedasticidad y se corrige la autocorrelación observada en los modelos lineales.
+
+
+#### Realiza el pronóstico para el siguiente año y grafícalo junto con los pronósticos previos y los datos originales.
+
+Se realizan las predicciones para el quinto año ($t = 17, 18, 19, 20$) aplicando la ecuación del Modelo Cuadrático Multiplicativo.
+
+```{r}
+t_futuro <- 17:20
+t2_futuro <- t_futuro^2
+df_futuro <- data.frame(t = t_futuro, t2 = t2_futuro)
+
+# Pronóstico con el Mejor Modelo (Multiplicativo Cuadrático)
+pred_futuro_des <- predict(fit_m4, newdata = df_futuro)
+pronostico_ano5 <- pred_futuro_des * indices_mult
+
+cat("\nPronóstico para el Año 5 (Trimestres 1 a 4):\n")
+print(round(pronostico_ano5, 2))
+
+# Unir histórico y pronóstico para gráfica
+ventas_completo <- c(ventas_vec, pronostico_ano5)
+ts_completa <- ts(ventas_completo, start = c(1, 1), frequency = 4)
+
+plot(ts_completa, type = "n", ylab = "Ventas (miles)", xlab = "Año",
+     main = "Pronóstico de Ventas de Televisores - Año 5")
+lines(ventas_ts, type = "o", col = "black", pch = 16, lwd = 2)
+lines(ts(pred_m4, start = c(1, 1), frequency = 4), col = "blue", lty = 2, lwd = 1.5)
+lines(ts(pronostico_ano5, start = c(5, 1), frequency = 4), type = "o", col = "red", pch = 18, lwd = 2)
+grid()
+legend("topleft", legend = c("Datos Históricos", "Ajuste Cuadrático Mult.", "Pronóstico Año 5"),
+       col = c("black", "blue", "red"), lty = c(1, 2, 1), pch = c(16, NA, 18), lwd = 2)
+```
+
+
+## Declaratoria de uso de IA durante el desarrollo del trabajo
+
+Se utilizó IA:  
+
+(1) Herramienta: Gemini
+
+(2) Uso realizado: Ayuda en el código a lo largo de todo el trabajo, así como guía en las interpretaciones del modelo.
+
+(3) Secciones donde se utilizó: En todas las secciones hubo apoyo de Gemini para el código, y también aportó como guía en las interpretaciones cuando apenas se iniciaba a analizar el modelo aditivo lineal en la tercera sección.
+
+(4) Validación realizada por los estudiantes: Se verificó, corrió y depuró todo el script de R, así como también analizaron todos los resultados arrojados para validar que todo estuviera correcto y en orden.
+
+(5) Confirmo de que se revisó, verificó y que se asume la responsabilidad del contenido final entregado.
+
+
